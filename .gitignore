@@ -1,0 +1,10 @@
+# Local/private imports
+TOIMPORT.xlsx
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log

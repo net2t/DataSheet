@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRANDEX LAW ASSOICATE — IP Law CMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+
+<style>
+/* ============================================================
+   BRANDEX THEME VARIABLES
+   Orange #FF8C00 + Teal #00A389 on clean white background
+   ============================================================ */
+:root {
+  --primary:     #FF8C00;   /* orange — main brand color */
+  --primary-light: rgba(255,140,0,0.1);
+  --primary-dark:  #e07d00;
+  --secondary:   #00A389;   /* teal — accent / success */
+  --secondary-light: rgba(0,163,137,0.1);
+  --danger:      #e74c3c;
+  --danger-light:rgba(231,76,60,0.1);
+  --bg:          #F8F9FA;   /* page background */
+  --card:        #FFFFFF;   /* card background */
+  --text:        #333333;
+  --muted:       #666666;
+  --border:      #E0E0E0;
+  --shadow:      0 2px 12px rgba(0,0,0,0.08);
+  --radius:      8px;
+  --sidebar-w:   240px;     /* sidebar width on desktop */
+  --font:        'Inter', sans-serif;
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;}
+a{color:var(--primary);text-decoration:none;}
+button{cursor:pointer;font-family:var(--font);}
+input,select,textarea{font-family:var(--font);}
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app{display:flex;min-height:100vh;}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+#sidebar{
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:var(--card);
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0;left:0;bottom:0;
+  z-index:200;
+  transition:width .3s, transform .3s;
+  overflow:hidden;
+}
+.sidebar-header{
+  padding:18px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:64px;
+}
+.logo-box{
+  width:36px;height:36px;min-width:36px;
+  background:var(--primary);
+  border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:13px;
+}
+.app-name{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;}
+.app-sub{font-size:10px;color:var(--muted);white-space:nowrap;}
+
+/* Hamburger toggle — shown on mobile */
+#menu-toggle{
+  display:none;
+  position:fixed;
+  top:14px;left:14px;
+  z-index:300;
+  background:var(--primary);
+  border:none;
+  color:#fff;
+  width:40px;height:40px;
+  border-radius:var(--radius);
+  align-items:center;justify-content:center;
+  font-size:16px;
+}
+
+/* Sidebar nav items */
+.nav-section-label{
+  font-size:10px;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--muted);padding:14px 20px 4px;white-space:nowrap;
+}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 20px;
+  color:var(--muted);
+  font-size:13.5px;font-weight:500;
+  cursor:pointer;
+  transition:all .2s;
+  border-right:3px solid transparent;
+  white-space:nowrap;
+}
+.nav-item i{width:18px;text-align:center;font-size:14px;}
+.nav-item:hover{background:var(--primary-light);color:var(--primary);}
+.nav-item.active{background:var(--primary-light);color:var(--primary);border-right-color:var(--primary);}
+.nav-text{overflow:hidden;}
+
+.sidebar-footer{
+  padding:14px 20px;
+  border-top:1px solid var(--border);
+  font-size:11px;color:var(--muted);
+  white-space:nowrap;
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+#main{
+  margin-left:var(--sidebar-w);
+  flex:1;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* Top bar */
+.topbar{
+  height:64px;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 24px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 4px rgba(0,0,0,0.06);
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-title{font-size:18px;font-weight:600;}
+.topbar-right{display:flex;align-items:center;gap:14px;}
+.avatar{
+  width:36px;height:36px;
+  background:var(--primary);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:600;font-size:13px;
+}
+
+/* Page content area */
+.page-content{
+  padding:24px;
+  flex:1;
+}
+
+/* Pages */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+.stats-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+.stat-card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  transition:transform .2s;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card:hover{transform:translateY(-3px);}
+.stat-card::after{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;height:3px;
+  background:var(--primary);
+}
+.stat-card.teal::after{background:var(--secondary);}
+.stat-card.red::after{background:var(--danger);}
+.stat-card.green::after{background:#4CAF50;}
+.sc-header{display:flex;justify-content:space-between;align-items:center;}
+.sc-label{font-size:12px;color:var(--muted);font-weight:500;}
+.sc-icon{
+  width:36px;height:36px;border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:14px;
+}
+.sc-value{font-size:26px;font-weight:700;}
+.sc-sub{font-size:11px;color:var(--secondary);display:flex;align-items:center;gap:4px;}
+
+/* ============================================================
+   URGENT PANEL
+   ============================================================ */
+.urgent-bar{
+  background:var(--secondary);
+  color:#fff;
+  border-radius:var(--radius);
+  padding:13px 18px;
+  margin-bottom:20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.urgent-bar .ub-left{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;}
+.ub-count{
+  background:#fff;color:var(--secondary);
+  min-width:22px;height:22px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;
+}
+
+/* ============================================================
+   SEARCH + FILTER BAR
+   ============================================================ */
+.filter-bar{
+  display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;align-items:center;
+}
+.search-box{flex:1;min-width:180px;position:relative;}
+.search-box i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);}
+.search-input{
+  width:100%;padding:10px 14px 10px 36px;
+  border:1px solid var(--border);border-radius:var(--radius);
+  font-size:13px;background:#fff;transition:all .2s;
+}
+.search-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light);}
+.filter-select{
+  padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);
+  font-size:13px;background:#fff;min-width:150px;
+  transition:all .2s;
+}
+.filter-select:focus{outline:none;border-color:var(--primary);}
+
+/* ============================================================
+   DATA TABLE
+   ============================================================ */
+.table-card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.table-header{
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;
+}
+.table-title{font-size:15px;font-weight:600;}
+.table-container{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:#f5f5f5;}
+th{
+  padding:12px 14px;text-align:left;
+  font-size:12px;font-weight:600;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+td{
+  padding:12px 14px;font-size:13px;
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background .15s;}
+tbody tr:hover{background:var(--primary-light);}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 18px;border-radius:var(--radius);
+  font-size:13px;font-weight:500;border:none;
+  transition:all .2s;cursor:pointer;
+}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);transform:translateY(-1px);}
+.btn-secondary{background:#f5f5f5;color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:#ebebeb;}
+.btn-teal{background:var(--secondary);color:#fff;}
+.btn-teal:hover{background:#008f78;}
+.btn-danger{background:var(--danger-light);color:var(--danger);border:1px solid rgba(231,76,60,.25);}
+.btn-danger:hover{background:rgba(231,76,60,.2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-icon{width:32px;height:32px;padding:0;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:#f5f5f5;color:var(--muted);border:none;transition:all .2s;}
+.btn-icon:hover{background:var(--primary);color:#fff;}
+.btn-icon.danger:hover{background:var(--danger);color:#fff;}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-Filing     {background:rgba(100,149,237,.15);color:#4169e1;}
+.badge-Examination{background:rgba(255,165,0,.15);color:#d4870a;}
+.badge-Publication{background:rgba(147,112,219,.15);color:#7b5cb8;}
+.badge-Opposition {background:var(--danger-light);color:var(--danger);}
+.badge-Registration{background:var(--secondary-light);color:var(--secondary);}
+.badge-Renewal    {background:rgba(64,224,208,.15);color:#20b2aa;}
+.badge-Abandoned  {background:#f0f0f0;color:#999;}
+.badge-Custom     {background:var(--primary-light);color:var(--primary);}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px;flex-wrap:wrap;gap:0;}
+.tab-btn{
+  padding:9px 16px;background:none;border:none;
+  font-size:13px;font-weight:500;color:var(--muted);
+  border-bottom:3px solid transparent;margin-bottom:-2px;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+
+/* ============================================================
+   LEDGER SUMMARY
+   ============================================================ */
+.ledger-info{
+  display:flex;gap:16px;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px 20px;
+  margin-bottom:18px;box-shadow:var(--shadow);
+}
+.li-box{display:flex;flex-direction:column;gap:2px;}
+.li-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.li-val{font-size:15px;font-weight:600;}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.45);
+  z-index:400;align-items:center;justify-content:center;
+  padding:16px;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--card);
+  border-radius:12px;
+  width:100%;max-width:600px;
+  max-height:90vh;overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,0.18);
+  animation:popIn .2s ease;
+}
+@keyframes popIn{from{transform:scale(.95);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-head{
+  padding:18px 22px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-head h3{font-size:16px;font-weight:600;}
+.modal-close{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;transition:color .15s;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:22px;}
+.modal-foot{
+  padding:16px 22px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:10px;
+}
+
+/* ============================================================
+   FORM
+   ============================================================ */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg.full{grid-column:1/-1;}
+.fg label{font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;}
+.fg input,.fg select,.fg textarea{
+  padding:10px 13px;border:1px solid var(--border);
+  border-radius:var(--radius);font-size:13px;
+  background:#fff;transition:all .2s;width:100%;
+}
+.fg input:focus,.fg select:focus,.fg textarea:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 2px var(--primary-light);
+}
+.fg input[readonly]{background:#f8f8f8;color:var(--primary);font-weight:600;}
+
+/* ============================================================
+   IMPORT DROPZONE
+   ============================================================ */
+.drop-zone{
+  border:2px dashed var(--border);
+  border-radius:12px;
+  padding:40px;
+  text-align:center;
+  transition:border-color .2s;
+  cursor:pointer;
+}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--primary);}
+.drop-zone .dz-icon{font-size:40px;color:var(--muted);margin-bottom:10px;}
+.drop-zone p{color:var(--muted);font-size:13px;margin-bottom:14px;}
+
+/* ============================================================
+   EXPORT CARDS
+   ============================================================ */
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;max-width:800px;}
+.export-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);box-shadow:var(--shadow);
+  padding:22px;
+}
+.export-card .ec-icon{font-size:28px;margin-bottom:10px;}
+.export-card h3{font-size:14px;font-weight:600;margin-bottom:6px;}
+.export-card p{font-size:12px;color:var(--muted);margin-bottom:16px;}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+#toast{
+  position:fixed;bottom:20px;right:20px;
+  background:#333;color:#fff;
+  padding:13px 18px;border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:10px;
+  transform:translateY(80px);opacity:0;
+  transition:all .3s;z-index:9999;
+  font-size:13px;max-width:300px;
+}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.success{background:var(--secondary);}
+#toast.error{background:var(--danger);}
+
+/* ============================================================
+   MISC
+   ============================================================ */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-state i{font-size:36px;margin-bottom:10px;opacity:.4;}
+.col-r{text-align:right;}
+.text-danger{color:var(--danger);}
+.text-success{color:var(--secondary);}
+.text-primary{color:var(--primary);}
+.text-muted{color:var(--muted);}
+.mt16{margin-top:16px;}
+.mb16{margin-bottom:16px;}
+.flex-gap{display:flex;gap:10px;flex-wrap:wrap;}
+.stage-bar-wrap{display:flex;flex-direction:column;gap:8px;}
+.sbr{display:flex;align-items:center;gap:10px;}
+.sbr-label{width:100px;text-align:right;font-size:12px;color:var(--muted);}
+.sbr-track{flex:1;background:#f0f0f0;border-radius:4px;height:8px;overflow:hidden;}
+.sbr-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .6s ease;}
+.sbr-count{width:28px;font-size:12px;color:var(--muted);}
+
+/* ============================================================
+   OVERLAY BACKDROP for mobile sidebar
+   ============================================================ */
+#sidebar-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;
+}
+
+/* ============================================================
+   RESPONSIVE — Tablet (≤1024px)
+   ============================================================ */
+@media(max-width:1024px){
+  :root{--sidebar-w:64px;}
+  .nav-text,.app-name,.app-sub,.nav-section-label,.sidebar-footer{display:none;}
+  .sidebar-header{justify-content:center;padding:14px;}
+  .nav-item{justify-content:center;padding:13px;}
+  .nav-item.active{border-right:none;border-bottom:none;}
+  .nav-item i{font-size:16px;}
+}
+
+/* ============================================================
+   RESPONSIVE — Mobile (≤768px): sidebar becomes top nav bar
+   ============================================================ */
+@media(max-width:768px){
+  #menu-toggle{display:flex;}
+  #sidebar{
+    transform:translateX(-100%);
+    width:240px;
+    /* full sidebar slides in on toggle */
+  }
+  #sidebar.open{transform:translateX(0);}
+  /* Restore hidden items for mobile slide-in */
+  #sidebar.open .nav-text,
+  #sidebar.open .app-name,
+  #sidebar.open .app-sub,
+  #sidebar.open .nav-section-label,
+  #sidebar.open .sidebar-footer{display:block;}
+  #sidebar.open .sidebar-header{justify-content:flex-start;padding:18px 20px;}
+  #sidebar.open .nav-item{justify-content:flex-start;padding:11px 20px;}
+  #sidebar.open .nav-item.active{border-right:3px solid var(--primary);border-bottom:none;}
+
+  #main{margin-left:0;}
+  .topbar{padding:0 14px 0 62px;}
+  .page-content{padding:14px;}
+
+  .form-grid{grid-template-columns:1fr;}
+  .form-grid.cols3{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .export-grid{grid-template-columns:1fr 1fr;}
+  .filter-bar{gap:8px;}
+  .filter-select{min-width:120px;}
+  #sidebar-backdrop.open{display:block;}
+}
+
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr;}
+  .export-grid{grid-template-columns:1fr;}
+  .filter-bar{flex-direction:column;align-items:stretch;}
+  .filter-select,.search-box{min-width:100%;}
+  .topbar-right .user-name{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Mobile hamburger button -->
+<button id="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+
+<!-- Sidebar backdrop (mobile) -->
+<div id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+<div id="app">
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <img src="LOGO.png" alt="Brandex" style="width:36px;height:36px;min-width:36px;border-radius:var(--radius);object-fit:contain;background:#fff;border:1px solid var(--border)">
+    <div>
+      <div class="app-name">BRANDEX LAW ASSOICATE</div>
+      <div class="app-sub">IP Law CMS</div>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)">
+      <i class="fas fa-tachometer-alt"></i><span class="nav-text">Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showPage('clients',this)">
+      <i class="fas fa-users"></i><span class="nav-text">Clients</span>
+    </div>
+    <div class="nav-item" onclick="showPage('entries',this)">
+      <i class="fas fa-clipboard-list"></i><span class="nav-text">All Entries</span>
+    </div>
+    <div class="nav-item" onclick="showPage('stages',this)">
+      <i class="fas fa-layer-group"></i><span class="nav-text">Stage View</span>
+    </div>
+
+    <div class="nav-section-label">Data</div>
+    <div class="nav-item" onclick="showPage('import',this)">
+      <i class="fas fa-file-import"></i><span class="nav-text">Import Excel</span>
+    </div>
+    <div class="nav-item" onclick="showPage('export',this)">
+      <i class="fas fa-file-export"></i><span class="nav-text">Export / Backup</span>
+    </div>
+    <div class="nav-item" onclick="showPage('log',this)">
+      <i class="fas fa-history"></i><span class="nav-text">Activity Log</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">v1.0 · Offline · Auto-Save ON · <a href="https://github.com/net2t/BRANDEX" target="_blank" rel="noopener noreferrer">Repo</a></div>
+</aside>
+
+<!-- ============================================================
+     MAIN
+     ============================================================ -->
+<div id="main">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-title" id="topbar-title">Dashboard</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-primary btn-sm" onclick="openAddEntryModal()">
+        <i class="fas fa-plus"></i> New Entry
+      </button>
+      <div class="avatar" title="OutLawZ™">OZ</div>
+      <span class="user-name" style="font-size:13px;font-weight:500;">OutLawZ™</span>
+    </div>
+  </div>
+
+  <div class="page-content">
+
+    <!-- ======================================================
+         DASHBOARD
+         ====================================================== -->
+    <div id="page-dashboard" class="page active">
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <div id="urgent-bar-wrap"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px" class="dash-bottom-grid">
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);">
+            <i class="fas fa-chart-bar" style="color:var(--primary)"></i> Cases by Stage
+          </div>
+          <div class="stage-bar-wrap" id="stage-chart"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);">
+            <i class="fas fa-clock" style="color:var(--primary)"></i> Recent Entries
+          </div>
+          <div class="table-card">
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Client</th><th>Stage</th><th>Due</th><th>Balance</th></tr></thead>
+                <tbody id="recent-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         CLIENTS
+         ====================================================== -->
+    <div id="page-clients" class="page">
+      <div class="filter-bar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input class="search-input" type="text" id="client-search" placeholder="Search by name, NTN..." oninput="renderClients()">
+        </div>
+        <button class="btn btn-primary" onclick="openAddClientModal()">
+          <i class="fas fa-plus"></i> Add Client
+        </button>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">Client List</span>
+          <span id="client-count" class="text-muted" style="font-size:12px;"></span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Client Name</th><th>NTN / ID</th><th>Phone</th><th>Email</th>
+              <th>Cases</th><th class="col-r">Balance</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="clients-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         ALL ENTRIES
+         ====================================================== -->
+    <div id="page-entries" class="page">
+      <div class="filter-bar">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input class="search-input" type="text" id="entry-search" placeholder="Search folder, TM, details..." oninput="renderEntries()">
+        </div>
+        <select class="filter-select" id="entry-stage-filter" onchange="renderEntries()">
+          <option value="">All Stages</option>
+        </select>
+        <select class="filter-select" id="entry-client-filter" onchange="renderEntries()">
+          <option value="">All Clients</option>
+        </select>
+        <button class="btn btn-primary" onclick="openAddEntryModal()">
+          <i class="fas fa-plus"></i> New Entry
+        </button>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="table-title">All Case Entries</span>
+          <span id="entry-count" class="text-muted" style="font-size:12px;"></span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Client</th><th>Folder No</th><th>Stage</th>
+              <th>TM No</th><th>Details</th>
+              <th class="col-r">Due</th><th class="col-r">Received</th><th class="col-r">Balance</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="entries-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         STAGE VIEW
+         ====================================================== -->
+    <div id="page-stages" class="page">
+      <div class="tabs" id="stage-tabs"></div>
+      <div class="table-card">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Client</th><th>Folder No</th><th>TM No</th><th>Details</th>
+              <th class="col-r">Due</th><th class="col-r">Received</th><th class="col-r">Balance</th>
+            </tr></thead>
+            <tbody id="stage-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         IMPORT
+         ====================================================== -->
+    <div id="page-import" class="page">
+      <div style="max-width:720px">
+
+        <!-- STEP 1: Upload -->
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('excel-input').click()">
+          <div class="dz-icon"><i class="fas fa-file-excel" style="color:#1D6F42"></i></div>
+          <p>Drag & drop your Excel file here, or click to browse</p>
+          <p style="font-size:11px;color:#bbb;">Supports .xls and .xlsx — including Brandex ledger format with frozen rows</p>
+          <button class="btn btn-secondary" onclick="event.stopPropagation();document.getElementById('excel-input').click()">
+            <i class="fas fa-upload"></i> Browse File
+          </button>
+        </div>
+        <input type="file" id="excel-input" accept=".xls,.xlsx" style="display:none" onchange="handleExcelImport(this)">
+
+        <div id="import-panel" style="display:none">
+
+          <div class="table-card mt16" style="padding:16px 20px">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="replace-data" checked>
+                <span><strong>Replace existing data before import</strong></span>
+              </label>
+              <div class="text-muted" style="font-size:12px">
+                <i class="fas fa-info-circle"></i> Use this if you want a fresh import (clears clients + entries).
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+              <button class="btn btn-teal" onclick="doBrandexImport()">
+                <i class="fas fa-file-import"></i> Import via Template
+              </button>
+              <button class="btn btn-danger" onclick="resetAllData()">
+                <i class="fas fa-trash"></i> Delete Data
+              </button>
+              <button class="btn btn-secondary" onclick="showPage('clients')">
+                <i class="fas fa-users"></i> View Clients
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2: Sheet selector (if multiple sheets) -->
+          <div class="table-card mt16" style="padding:16px 20px">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+              <div class="fg" style="min-width:200px">
+                <label><i class="fas fa-table" style="color:var(--primary)"></i> Select Sheet</label>
+                <select id="sheet-select" onchange="onSheetChange()"></select>
+              </div>
+              <div class="fg" style="min-width:200px">
+                <label><i class="fas fa-level-down-alt" style="color:var(--primary)"></i> Skip Top Rows (frozen header rows)</label>
+                <select id="skip-rows-select" onchange="renderMappingGrid()">
+                  <option value="0">Row 1 = Column Headers</option>
+                  <option value="1">Skip 1 row → headers on row 2</option>
+                  <option value="2">Skip 2 rows → headers on row 3</option>
+                  <option value="3" selected>Skip 3 rows → headers on row 4 ✓ Brandex</option>
+                  <option value="4">Skip 4 rows → headers on row 5</option>
+                  <option value="5">Skip 5 rows → headers on row 6</option>
+                  <option value="6">Skip 6 rows → headers on row 7</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: Client assignment method -->
+          <div class="table-card mt16" style="padding:16px 20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">
+              <i class="fas fa-user-tag" style="color:var(--primary)"></i> Client Assignment Method
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+
+              <!-- Option A: From column -->
+              <label style="flex:1;min-width:200px;cursor:pointer">
+                <div style="border:2px solid var(--border);border-radius:var(--radius);padding:14px;transition:all .2s" id="method-col-box">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <input type="radio" name="client-method" value="column" id="method-col" checked onchange="toggleClientMethod()">
+                    <strong style="font-size:13px">From Column</strong>
+                  </div>
+                  <p style="font-size:11px;color:var(--muted)">Excel file has LEDGER NO or CLIENT NAME column — map it below</p>
+                </div>
+              </label>
+
+              <!-- Option B: Dropdown -->
+              <label style="flex:1;min-width:200px;cursor:pointer">
+                <div style="border:2px solid var(--border);border-radius:var(--radius);padding:14px;transition:all .2s" id="method-drop-box">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                    <input type="radio" name="client-method" value="dropdown" id="method-drop" onchange="toggleClientMethod()">
+                    <strong style="font-size:13px">Select from Dropdown</strong>
+                  </div>
+                  <p style="font-size:11px;color:var(--muted)">No client column — assign all rows to one client</p>
+                </div>
+              </label>
+
+            </div>
+
+            <!-- Dropdown selector (shown when dropdown method chosen) -->
+            <div id="dropdown-client-wrap" style="display:none;margin-top:14px">
+              <div class="fg" style="max-width:320px">
+                <label>Select Client for all imported rows</label>
+                <select id="import-default-client">
+                  <option value="">— Select Client —</option>
+                </select>
+              </div>
+              <p style="font-size:11px;color:var(--muted);margin-top:6px">
+                <i class="fas fa-info-circle"></i> All rows in this file will be imported under the selected client
+              </p>
+            </div>
+
+            <!-- Ledger no hint (shown when column method) -->
+            <div id="column-client-hint" style="margin-top:10px">
+              <p style="font-size:11px;color:var(--secondary)">
+                <i class="fas fa-info-circle"></i>
+                Map the <strong>LEDGER NO</strong> column below → CMS will auto-create clients like A-001, A-002 if they don't exist yet
+              </p>
+            </div>
+          </div>
+
+          <!-- STEP 4: Column mapping -->
+          <div class="table-card mt16" style="padding:16px 20px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:12px">
+              <i class="fas fa-columns" style="color:var(--primary)"></i> Map Excel Columns → CMS Fields
+            </div>
+            <div class="form-grid" id="mapping-grid"></div>
+          </div>
+
+          <!-- STEP 5: Preview + Import -->
+          <div class="flex-gap mt16">
+            <button class="btn btn-primary" onclick="doImport()">
+              <i class="fas fa-check"></i> Import Now
+            </button>
+            <button class="btn btn-secondary" onclick="cancelImport()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+          <div id="import-preview" class="mt16"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         EXPORT / BACKUP
+         ====================================================== -->
+    <div id="page-export" class="page">
+      <div class="export-grid">
+        <div class="export-card">
+          <div class="ec-icon">📊</div>
+          <h3>Export to Excel</h3>
+          <p>Download all entries as .xlsx — ready for Google Sheets</p>
+          <button class="btn btn-primary btn-sm" onclick="exportExcel()">
+            <i class="fas fa-download"></i> Download Excel
+          </button>
+        </div>
+        <div class="export-card">
+          <div class="ec-icon">🗄</div>
+          <h3>SQLite Backup</h3>
+          <p>Download raw .sqlite database file for full backup</p>
+          <button class="btn btn-secondary btn-sm" onclick="exportSQLite()">
+            <i class="fas fa-database"></i> Download .sqlite
+          </button>
+        </div>
+        <div class="export-card">
+          <div class="ec-icon">📄</div>
+          <h3>JSON Backup</h3>
+          <p>Download full data as JSON — easy to restore</p>
+          <button class="btn btn-secondary btn-sm" onclick="exportJSON()">
+            <i class="fas fa-file-code"></i> Download JSON
+          </button>
+        </div>
+        <div class="export-card">
+          <div class="ec-icon">♻</div>
+          <h3>Restore from JSON</h3>
+          <p>Import a previously saved JSON backup file</p>
+          <input type="file" id="json-restore-input" accept=".json" style="display:none" onchange="restoreJSON(this)">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('json-restore-input').click()">
+            <i class="fas fa-upload"></i> Upload JSON
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         ACTIVITY LOG
+         ====================================================== -->
+    <div id="page-log" class="page">
+      <div class="filter-bar">
+        <button class="btn btn-danger btn-sm" onclick="clearLog()">
+          <i class="fas fa-trash"></i> Clear Log
+        </button>
+      </div>
+      <div class="table-card">
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Timestamp</th><th>Action</th><th>Details</th></tr></thead>
+            <tbody id="log-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         CLIENT LEDGER (dynamic page)
+         ====================================================== -->
+    <div id="page-ledger" class="page">
+      <div class="filter-bar">
+        <button class="btn btn-secondary btn-sm" onclick="showPage('clients',null)">
+          <i class="fas fa-arrow-left"></i> Back to Clients
+        </button>
+        <button class="btn btn-primary btn-sm" onclick="openAddEntryModal(currentLedgerClientId)">
+          <i class="fas fa-plus"></i> Add Entry
+        </button>
+      </div>
+      <div class="ledger-info" id="ledger-info"></div>
+      <div class="table-card">
+        <div class="table-container">
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Folder No</th><th>Stage</th><th>TM No</th><th>Details</th>
+              <th class="col-r">Due</th><th class="col-r">Received</th><th class="col-r">Running Balance</th>
+              <th>Actions</th>
+            </tr></thead>
+            <tbody id="ledger-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end page-content -->
+</div><!-- end #main -->
+</div><!-- end #app -->
+
+<!-- ============================================================
+     MODAL: CLIENT
+     ============================================================ -->
+<div class="overlay" id="client-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="client-modal-title">Add Client</h3>
+      <button class="modal-close" onclick="closeModal('client-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg full">
+          <label>Client / Firm Name *</label>
+          <input type="text" id="c-name" placeholder="e.g. Ali & Brothers Pvt Ltd">
+        </div>
+        <div class="fg"><label>NTN / CNIC / ID</label><input type="text" id="c-ntn" placeholder="e.g. 1234567-8"></div>
+        <div class="fg"><label>Phone</label><input type="text" id="c-phone" placeholder="+92 300 ..."></div>
+        <div class="fg"><label>Email</label><input type="email" id="c-email" placeholder="client@email.com"></div>
+        <div class="fg"><label>Address</label><input type="text" id="c-address" placeholder="City, Province"></div>
+        <div class="fg full"><label>Notes</label><textarea id="c-notes" rows="2" placeholder="Any remarks..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('client-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()"><i class="fas fa-save"></i> Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: ENTRY
+     ============================================================ -->
+<div class="overlay" id="entry-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="entry-modal-title">Add Entry</h3>
+      <button class="modal-close" onclick="closeModal('entry-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg"><label>Date *</label><input type="date" id="e-date"></div>
+        <div class="fg"><label>Client *</label><select id="e-client"></select></div>
+        <div class="fg"><label>Folder No</label><input type="text" id="e-folder" placeholder="e.g. TM-2024-001"></div>
+        <div class="fg">
+          <label>Stage *</label>
+          <select id="e-stage" onchange="toggleCustomStage()">
+            <option value="Filing">Filing</option>
+            <option value="Examination">Examination</option>
+            <option value="Publication">Publication</option>
+            <option value="Opposition">Opposition</option>
+            <option value="Registration">Registration</option>
+            <option value="Renewal">Renewal</option>
+            <option value="Abandoned">Abandoned/Closed</option>
+            <option value="Custom">+ Custom Stage</option>
+          </select>
+        </div>
+        <div class="fg full" id="custom-stage-wrap" style="display:none">
+          <label>Custom Stage Value</label>
+          <input type="text" id="e-custom-stage" placeholder="Type custom stage...">
+        </div>
+        <div class="fg"><label>TM / Copyright No (Govt)</label><input type="text" id="e-tmno" placeholder="Govt assigned no."></div>
+        <div class="fg full"><label>Details / Remarks</label><textarea id="e-details" rows="2" placeholder="Work done, hearing date, remarks..."></textarea></div>
+        <div class="fg"><label>Due Amount (Rs)</label><input type="number" id="e-due" placeholder="0" oninput="calcBal()"></div>
+        <div class="fg"><label>Received Amount (Rs)</label><input type="number" id="e-received" placeholder="0" oninput="calcBal()"></div>
+        <div class="fg"><label>Balance (Auto-calculated)</label><input type="number" id="e-balance" readonly></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('entry-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEntry()"><i class="fas fa-save"></i> Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let DB = null;
+let editingClientId = null;
+let editingEntryId  = null;
+let currentLedgerClientId = null;
+let activeStageTab = 'Filing';
+let importSheetData = [];
+
+const STAGES = ['Filing','Examination','Publication','Opposition','Registration','Renewal','Abandoned'];
+
+// CMS_FIELDS defined below in IMPORT section
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = async function(){
+  await initDB();
+  loadLS();
+  refreshAll();
+  setToday();
+  toggleClientMethod(); // init import UI state
+};
+
+// ============================================================
+// SQLITE SETUP
+// ============================================================
+async function initDB(){
+  const SQL = await initSqlJs({
+    locateFile: f=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${f}`
+  });
+  DB = new SQL.Database();
+  DB.run(`CREATE TABLE IF NOT EXISTS clients(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT, ntn TEXT, phone TEXT, email TEXT, address TEXT, notes TEXT, created TEXT
+  )`);
+  DB.run(`CREATE TABLE IF NOT EXISTS entries(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER, date TEXT, folder TEXT, stage TEXT,
+    tmno TEXT, details TEXT, due REAL, received REAL, balance REAL, created TEXT
+  )`);
+  DB.run(`CREATE TABLE IF NOT EXISTS log(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT, action TEXT, detail TEXT
+  )`);
+}
+
+function saveLS(){
+  if(!DB) return;
+  const d = DB.export();
+  localStorage.setItem('lt_db', btoa(String.fromCharCode(...d)));
+}
+function loadLS(){
+  const b = localStorage.getItem('lt_db');
+  if(!b||!DB) return;
+  try{
+    const bin = atob(b);
+    const arr = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    DB = new (Object.getPrototypeOf(DB).constructor)(arr);
+  }catch(e){console.warn('DB restore failed',e);}
+}
+
+// ============================================================
+// DB HELPER
+// ============================================================
+function q(sql, p=[]){
+  const rows=[];
+  try{
+    const s=DB.prepare(sql); s.bind(p);
+    while(s.step()) rows.push(s.getAsObject());
+    s.free();
+  }catch(e){console.error(e,sql);}
+  return rows;
+}
+
+// ============================================================
+// FORMATTERS
+// ============================================================
+const fmt  = n => (parseFloat(n)||0).toLocaleString('en-PK',{minimumFractionDigits:0});
+const fmtD = d => d||'—';
+function badge(stage){
+  const m={'Filing':'Filing','Examination':'Examination','Publication':'Publication',
+    'Opposition':'Opposition','Registration':'Registration','Renewal':'Renewal',
+    'Abandoned':'Abandoned','Abandoned/Closed':'Abandoned'};
+  const c=m[stage]||'Custom';
+  return `<span class="badge badge-${c}">${stage}</span>`;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PAGE_TITLES = {
+  dashboard:'Dashboard', clients:'Clients', entries:'All Entries',
+  stages:'Stage View', import:'Import Excel', export:'Export & Backup',
+  log:'Activity Log', ledger:'Client Ledger'
+};
+
+function showPage(name, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(a=>a.classList.remove('active'));
+  const pg = document.getElementById('page-'+name);
+  if(pg) pg.classList.add('active');
+  if(el) el.classList.add('active');
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[name]||name;
+  closeSidebar();
+  if(name==='dashboard') refreshDashboard();
+  if(name==='clients')   renderClients();
+  if(name==='entries')   {populateFilters();renderEntries();}
+  if(name==='stages')    {renderStageTabs();renderStageView();}
+  if(name==='log')       renderLog();
+  if(name==='import')    populateFilters();
+}
+
+function openLedger(id){
+  currentLedgerClientId = id;
+  renderLedger(id);
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(a=>a.classList.remove('active'));
+  document.getElementById('page-ledger').classList.add('active');
+  document.getElementById('topbar-title').textContent = 'Client Ledger';
+  closeSidebar();
+}
+
+function refreshAll(){
+  refreshDashboard();
+  renderClients();
+  populateFilters();
+  renderEntries();
+  renderStageTabs();
+  renderStageView();
+  renderLog();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function refreshDashboard(){
+  const cC   = q('SELECT COUNT(*) c FROM clients')[0]?.c||0;
+  const eC   = q('SELECT COUNT(*) c FROM entries')[0]?.c||0;
+  const tot  = q('SELECT SUM(due) d, SUM(received) r, SUM(balance) b FROM entries')[0]||{};
+  const bal  = parseFloat(tot.b)||0;
+
+  // Stat cards
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="sc-header"><span class="sc-label">Total Clients</span>
+        <div class="sc-icon" style="background:var(--primary)"><i class="fas fa-users"></i></div></div>
+      <div class="sc-value">${cC}</div>
+      <div class="sc-sub"><i class="fas fa-briefcase"></i> Registered clients</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="sc-header"><span class="sc-label">Total Cases</span>
+        <div class="sc-icon" style="background:var(--secondary)"><i class="fas fa-file-alt"></i></div></div>
+      <div class="sc-value">${eC}</div>
+      <div class="sc-sub"><i class="fas fa-layer-group"></i> All entries</div>
+    </div>
+    <div class="stat-card red">
+      <div class="sc-header"><span class="sc-label">Total Due</span>
+        <div class="sc-icon" style="background:var(--danger)"><i class="fas fa-file-invoice-dollar"></i></div></div>
+      <div class="sc-value text-danger">Rs ${fmt(tot.d)}</div>
+      <div class="sc-sub"><i class="fas fa-arrow-up"></i> Billed amount</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-header"><span class="sc-label">Total Received</span>
+        <div class="sc-icon" style="background:#4CAF50"><i class="fas fa-check-circle"></i></div></div>
+      <div class="sc-value text-success">Rs ${fmt(tot.r)}</div>
+      <div class="sc-sub"><i class="fas fa-arrow-down"></i> Collected</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="sc-header"><span class="sc-label">Outstanding</span>
+        <div class="sc-icon" style="background:var(--primary)"><i class="fas fa-balance-scale"></i></div></div>
+      <div class="sc-value text-primary">Rs ${fmt(bal)}</div>
+      <div class="sc-sub"><i class="fas fa-exclamation-circle"></i> Remaining to collect</div>
+    </div>
+  `;
+
+  // Urgent bar — show if outstanding > 0
+  document.getElementById('urgent-bar-wrap').innerHTML = bal > 0
+    ? `<div class="urgent-bar mb16">
+        <div class="ub-left">
+          <i class="fas fa-exclamation-circle"></i>
+          Outstanding balance: <strong>Rs ${fmt(bal)}</strong> across active clients
+        </div>
+        <i class="fas fa-chevron-right"></i>
+       </div>` : '';
+
+  // Stage chart
+  const sc = q('SELECT stage, COUNT(*) c FROM entries GROUP BY stage ORDER BY c DESC');
+  const mx = Math.max(...sc.map(r=>r.c),1);
+  document.getElementById('stage-chart').innerHTML = sc.length
+    ? sc.map(r=>`
+      <div class="sbr">
+        <div class="sbr-label">${r.stage}</div>
+        <div class="sbr-track"><div class="sbr-fill" style="width:${(r.c/mx)*100}%"></div></div>
+        <div class="sbr-count">${r.c}</div>
+      </div>`).join('')
+    : '<p class="text-muted">No data yet</p>';
+
+  // Recent entries
+  const rec = q(`SELECT e.*,c.name cn FROM entries e LEFT JOIN clients c ON e.client_id=c.id ORDER BY e.id DESC LIMIT 6`);
+  document.getElementById('recent-tbody').innerHTML = rec.length
+    ? rec.map(r=>`<tr>
+        <td>${r.cn||'—'}</td><td>${badge(r.stage)}</td>
+        <td class="text-danger">Rs ${fmt(r.due)}</td>
+        <td class="${parseFloat(r.balance)>0?'text-danger':'text-muted'}">Rs ${fmt(r.balance)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4"><div class="empty-state"><i class="fas fa-inbox"></i><p>No entries</p></div></td></tr>`;
+}
+
+// ============================================================
+// CLIENTS
+// ============================================================
+function renderClients(){
+  const sq = (document.getElementById('client-search')?.value||'').toLowerCase();
+  let rows = q(`SELECT c.*,COUNT(e.id) tc,SUM(e.balance) tb
+    FROM clients c LEFT JOIN entries e ON c.id=e.client_id
+    GROUP BY c.id ORDER BY c.name`);
+  if(sq) rows=rows.filter(c=>(c.name||'').toLowerCase().includes(sq)||(c.ntn||'').toLowerCase().includes(sq));
+  document.getElementById('client-count').textContent=rows.length+' client(s)';
+  const tb=document.getElementById('clients-tbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty-state"><i class="fas fa-users"></i><p>No clients. Click "Add Client" to start.</p></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML=rows.map((c,i)=>`<tr>
+    <td class="text-muted">${i+1}</td>
+    <td><strong>${c.name}</strong></td>
+    <td class="text-muted">${c.ntn||'—'}</td>
+    <td class="text-muted">${c.phone||'—'}</td>
+    <td class="text-muted">${c.email||'—'}</td>
+    <td>${c.tc||0}</td>
+    <td class="col-r ${parseFloat(c.tb)>0?'text-danger':'text-muted'}">Rs ${fmt(c.tb)}</td>
+    <td><div class="flex-gap">
+      <button class="btn-icon" title="Ledger" onclick="openLedger(${c.id})"><i class="fas fa-book-open"></i></button>
+      <button class="btn-icon" title="Edit" onclick="editClient(${c.id})"><i class="fas fa-edit"></i></button>
+      <button class="btn-icon danger" title="Delete" onclick="deleteClient(${c.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// ENTRIES
+// ============================================================
+function populateFilters(){
+  const clients=q('SELECT id,name FROM clients ORDER BY name');
+  const copts='<option value="">All Clients</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const sel=document.getElementById('entry-client-filter');
+  if(sel) sel.innerHTML=copts;
+  const sf=document.getElementById('entry-stage-filter');
+  if(sf) sf.innerHTML='<option value="">All Stages</option>'+STAGES.map(s=>`<option value="${s}">${s}</option>`).join('');
+  // entry modal client select
+  const ec=document.getElementById('e-client');
+  if(ec) ec.innerHTML='<option value="">— Select Client —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  // import default client
+  const dc=document.getElementById('import-default-client');
+  if(dc) dc.innerHTML='<option value="">— Select Client —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+function renderEntries(){
+  const sq=(document.getElementById('entry-search')?.value||'').toLowerCase();
+  const st=document.getElementById('entry-stage-filter')?.value||'';
+  const ci=document.getElementById('entry-client-filter')?.value||'';
+  let sql=`SELECT e.*,c.name cn FROM entries e LEFT JOIN clients c ON e.client_id=c.id WHERE 1=1`;
+  const p=[];
+  if(st){sql+=' AND e.stage=?';p.push(st);}
+  if(ci){sql+=' AND e.client_id=?';p.push(ci);}
+  sql+=' ORDER BY e.date DESC,e.id DESC';
+  let rows=q(sql,p);
+  if(sq) rows=rows.filter(r=>
+    (r.folder||'').toLowerCase().includes(sq)||
+    (r.tmno||'').toLowerCase().includes(sq)||
+    (r.details||'').toLowerCase().includes(sq)||
+    (r.cn||'').toLowerCase().includes(sq)
+  );
+  document.getElementById('entry-count').textContent=rows.length+' record(s)';
+  const tb=document.getElementById('entries-tbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="10"><div class="empty-state"><i class="fas fa-clipboard-list"></i><p>No entries found.</p></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML=rows.map(r=>`<tr>
+    <td>${fmtD(r.date)}</td>
+    <td>${r.cn||'—'}</td>
+    <td class="text-muted">${r.folder||'—'}</td>
+    <td>${badge(r.stage)}</td>
+    <td class="text-muted">${r.tmno||'—'}</td>
+    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.details||''}">${r.details||'—'}</td>
+    <td class="col-r text-danger">Rs ${fmt(r.due)}</td>
+    <td class="col-r text-success">Rs ${fmt(r.received)}</td>
+    <td class="col-r ${parseFloat(r.balance)>0?'text-danger':'text-muted'}">Rs ${fmt(r.balance)}</td>
+    <td><div class="flex-gap">
+      <button class="btn-icon" onclick="editEntry(${r.id})"><i class="fas fa-edit"></i></button>
+      <button class="btn-icon danger" onclick="deleteEntry(${r.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// STAGE VIEW
+// ============================================================
+function renderStageTabs(){
+  const counts={};
+  STAGES.forEach(s=>counts[s]=0);
+  q('SELECT stage,COUNT(*) c FROM entries GROUP BY stage').forEach(r=>counts[r.stage]=r.c);
+  document.getElementById('stage-tabs').innerHTML=
+    STAGES.map(s=>`
+      <button class="tab-btn ${s===activeStageTab?'active':''}" onclick="setStageTab('${s}')">
+        ${s} <span style="font-size:11px;opacity:.6">(${counts[s]||0})</span>
+      </button>`).join('');
+}
+function setStageTab(s){activeStageTab=s;renderStageTabs();renderStageView();}
+function renderStageView(){
+  const rows=q(`SELECT e.*,c.name cn FROM entries e LEFT JOIN clients c ON e.client_id=c.id WHERE e.stage=? ORDER BY e.date DESC`,[activeStageTab]);
+  const tb=document.getElementById('stage-tbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="8"><div class="empty-state"><i class="fas fa-layer-group"></i><p>No entries in "${activeStageTab}" stage.</p></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML=rows.map(r=>`<tr>
+    <td>${fmtD(r.date)}</td><td>${r.cn||'—'}</td>
+    <td class="text-muted">${r.folder||'—'}</td>
+    <td class="text-muted">${r.tmno||'—'}</td>
+    <td>${r.details||'—'}</td>
+    <td class="col-r text-danger">Rs ${fmt(r.due)}</td>
+    <td class="col-r text-success">Rs ${fmt(r.received)}</td>
+    <td class="col-r ${parseFloat(r.balance)>0?'text-danger':'text-muted'}">Rs ${fmt(r.balance)}</td>
+  </tr>`).join('');
+}
+
+// ============================================================
+// LEDGER
+// ============================================================
+function renderLedger(id){
+  const c=q('SELECT * FROM clients WHERE id=?',[id])[0];
+  if(!c) return;
+  const t=q('SELECT SUM(due) d,SUM(received) r,SUM(balance) b FROM entries WHERE client_id=?',[id])[0]||{};
+  document.getElementById('topbar-title').textContent=c.name+' — Ledger';
+  document.getElementById('ledger-info').innerHTML=`
+    <div class="li-box"><span class="li-label">Client</span><span class="li-val">${c.name}</span></div>
+    ${c.ntn?`<div class="li-box"><span class="li-label">NTN</span><span class="li-val">${c.ntn}</span></div>`:''}
+    ${c.phone?`<div class="li-box"><span class="li-label">Phone</span><span class="li-val">${c.phone}</span></div>`:''}
+    <div class="li-box"><span class="li-label">Total Due</span><span class="li-val text-danger">Rs ${fmt(t.d)}</span></div>
+    <div class="li-box"><span class="li-label">Received</span><span class="li-val text-success">Rs ${fmt(t.r)}</span></div>
+    <div class="li-box"><span class="li-label">Outstanding</span><span class="li-val text-primary">Rs ${fmt(t.b)}</span></div>
+  `;
+  const rows=q('SELECT * FROM entries WHERE client_id=? ORDER BY date ASC,id ASC',[id]);
+  let run=0;
+  const tb=document.getElementById('ledger-tbody');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="9"><div class="empty-state"><i class="fas fa-book-open"></i><p>No entries for this client.</p></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML=rows.map(r=>{
+    run+=parseFloat(r.balance)||0;
+    return `<tr>
+      <td>${fmtD(r.date)}</td>
+      <td class="text-muted">${r.folder||'—'}</td>
+      <td>${badge(r.stage)}</td>
+      <td class="text-muted">${r.tmno||'—'}</td>
+      <td>${r.details||'—'}</td>
+      <td class="col-r text-danger">Rs ${fmt(r.due)}</td>
+      <td class="col-r text-success">Rs ${fmt(r.received)}</td>
+      <td class="col-r ${run>0?'text-danger':'text-muted'}"><strong>Rs ${fmt(run)}</strong></td>
+      <td><div class="flex-gap">
+        <button class="btn-icon" onclick="editEntry(${r.id})"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon danger" onclick="deleteEntry(${r.id},true)"><i class="fas fa-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// LOG
+// ============================================================
+function addLog(action,detail){
+  const ts=new Date().toLocaleString('en-PK');
+  DB.run('INSERT INTO log(ts,action,detail) VALUES(?,?,?)',[ts,action,detail]);
+  saveLS();
+}
+function renderLog(){
+  const rows=q('SELECT * FROM log ORDER BY id DESC LIMIT 300');
+  const tb=document.getElementById('log-tbody');
+  tb.innerHTML=rows.length
+    ? rows.map(r=>`<tr><td class="text-muted" style="white-space:nowrap;font-size:12px">${r.ts}</td><td><strong>${r.action}</strong></td><td class="text-muted">${r.detail}</td></tr>`).join('')
+    : `<tr><td colspan="3"><div class="empty-state"><i class="fas fa-history"></i><p>No activity logged.</p></div></td></tr>`;
+}
+function clearLog(){
+  if(!confirm('Clear all logs?')) return;
+  DB.run('DELETE FROM log');saveLS();renderLog();toast('Log cleared');
+}
+
+// ============================================================
+// CLIENT CRUD
+// ============================================================
+function openAddClientModal(){
+  editingClientId=null;
+  document.getElementById('client-modal-title').textContent='Add Client';
+  ['c-name','c-ntn','c-phone','c-email','c-address','c-notes'].forEach(id=>document.getElementById(id).value='');
+  openModal('client-modal');
+}
+function editClient(id){
+  const c=q('SELECT * FROM clients WHERE id=?',[id])[0];
+  if(!c) return;
+  editingClientId=id;
+  document.getElementById('client-modal-title').textContent='Edit Client';
+  document.getElementById('c-name').value=c.name||'';
+  document.getElementById('c-ntn').value=c.ntn||'';
+  document.getElementById('c-phone').value=c.phone||'';
+  document.getElementById('c-email').value=c.email||'';
+  document.getElementById('c-address').value=c.address||'';
+  document.getElementById('c-notes').value=c.notes||'';
+  openModal('client-modal');
+}
+function saveClient(){
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){toast('Client name required!','error');return;}
+  const v=[name,...['c-ntn','c-phone','c-email','c-address','c-notes'].map(id=>document.getElementById(id).value.trim())];
+  if(editingClientId){
+    DB.run('UPDATE clients SET name=?,ntn=?,phone=?,email=?,address=?,notes=? WHERE id=?',[...v,editingClientId]);
+    addLog('EDIT CLIENT',name); toast('Client updated','success');
+  } else {
+    DB.run('INSERT INTO clients(name,ntn,phone,email,address,notes,created) VALUES(?,?,?,?,?,?,?)',[...v,new Date().toISOString()]);
+    addLog('ADD CLIENT',name); toast('Client added','success');
+  }
+  saveLS(); closeModal('client-modal'); renderClients(); populateFilters();
+}
+function deleteClient(id){
+  const c=q('SELECT name FROM clients WHERE id=?',[id])[0];
+  if(!confirm(`Delete "${c?.name}" and ALL their entries?`)) return;
+  DB.run('DELETE FROM entries WHERE client_id=?',[id]);
+  DB.run('DELETE FROM clients WHERE id=?',[id]);
+  addLog('DELETE CLIENT',c?.name||id); saveLS(); renderClients(); toast('Client deleted','error');
+}
+
+// ============================================================
+// ENTRY CRUD
+// ============================================================
+function openAddEntryModal(presetCid=null){
+  editingEntryId=null;
+  document.getElementById('entry-modal-title').textContent='Add Entry';
+  setToday();
+  ['e-folder','e-tmno','e-details'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('e-due').value='';
+  document.getElementById('e-received').value='';
+  document.getElementById('e-balance').value='';
+  document.getElementById('e-stage').value='Filing';
+  document.getElementById('custom-stage-wrap').style.display='none';
+  populateFilters();
+  if(presetCid) document.getElementById('e-client').value=presetCid;
+  openModal('entry-modal');
+}
+function editEntry(id){
+  const r=q('SELECT * FROM entries WHERE id=?',[id])[0];
+  if(!r) return;
+  editingEntryId=id;
+  document.getElementById('entry-modal-title').textContent='Edit Entry';
+  populateFilters();
+  document.getElementById('e-date').value=r.date||'';
+  document.getElementById('e-client').value=r.client_id||'';
+  document.getElementById('e-folder').value=r.folder||'';
+  document.getElementById('e-tmno').value=r.tmno||'';
+  document.getElementById('e-details').value=r.details||'';
+  document.getElementById('e-due').value=r.due||'';
+  document.getElementById('e-received').value=r.received||'';
+  document.getElementById('e-balance').value=r.balance||'';
+  const known=[...STAGES,'Custom'];
+  if(known.includes(r.stage)){
+    document.getElementById('e-stage').value=r.stage;
+    document.getElementById('custom-stage-wrap').style.display='none';
+  } else {
+    document.getElementById('e-stage').value='Custom';
+    document.getElementById('e-custom-stage').value=r.stage;
+    document.getElementById('custom-stage-wrap').style.display='block';
+  }
+  openModal('entry-modal');
+}
+function saveEntry(){
+  const cid=document.getElementById('e-client').value;
+  const date=document.getElementById('e-date').value;
+  let stage=document.getElementById('e-stage').value;
+  if(stage==='Custom') stage=document.getElementById('e-custom-stage').value.trim()||'Custom';
+  if(!cid){toast('Select a client!','error');return;}
+  if(!date){toast('Date required!','error');return;}
+  const due=parseFloat(document.getElementById('e-due').value)||0;
+  const rec=parseFloat(document.getElementById('e-received').value)||0;
+  const bal=due-rec;
+  const v=[cid,date,document.getElementById('e-folder').value.trim(),stage,
+    document.getElementById('e-tmno').value.trim(),document.getElementById('e-details').value.trim(),due,rec,bal];
+  const cn=q('SELECT name FROM clients WHERE id=?',[cid])[0]?.name||'';
+  if(editingEntryId){
+    DB.run('UPDATE entries SET client_id=?,date=?,folder=?,stage=?,tmno=?,details=?,due=?,received=?,balance=? WHERE id=?',[...v,editingEntryId]);
+    addLog('EDIT ENTRY',`${cn} | ${stage} | Due: Rs ${due}`); toast('Entry updated','success');
+  } else {
+    DB.run('INSERT INTO entries(client_id,date,folder,stage,tmno,details,due,received,balance,created) VALUES(?,?,?,?,?,?,?,?,?,?)',[...v,new Date().toISOString()]);
+    addLog('ADD ENTRY',`${cn} | ${stage} | Due: Rs ${due}`); toast('Entry saved','success');
+  }
+  saveLS(); closeModal('entry-modal'); refreshAll();
+  if(currentLedgerClientId) renderLedger(currentLedgerClientId);
+}
+function deleteEntry(id,stayLedger=false){
+  if(!confirm('Delete this entry?')) return;
+  const r=q('SELECT e.*,c.name cn FROM entries e LEFT JOIN clients c ON e.client_id=c.id WHERE e.id=?',[id])[0];
+  DB.run('DELETE FROM entries WHERE id=?',[id]);
+  addLog('DELETE ENTRY',(r?.cn||'')+' | '+(r?.stage||''));
+  saveLS();
+  if(stayLedger&&currentLedgerClientId) renderLedger(currentLedgerClientId);
+  else refreshAll();
+  toast('Entry deleted','error');
+}
+
+function calcBal(){
+  const d=parseFloat(document.getElementById('e-due').value)||0;
+  const r=parseFloat(document.getElementById('e-received').value)||0;
+  document.getElementById('e-balance').value=(d-r).toFixed(0);
+}
+function toggleCustomStage(){
+  document.getElementById('custom-stage-wrap').style.display=
+    document.getElementById('e-stage').value==='Custom'?'block':'none';
+}
+function setToday(){
+  const el=document.getElementById('e-date');
+  if(el) el.value=new Date().toISOString().split('T')[0];
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportExcel(){
+  const rows=q(`SELECT e.date,c.name client,c.ntn,e.folder,e.stage,e.tmno,e.details,e.due,e.received,e.balance
+    FROM entries e LEFT JOIN clients c ON e.client_id=c.id ORDER BY e.date DESC`);
+  if(!rows.length){toast('No entries to export','error');return;}
+  const ws=[['Date','Client','NTN','Folder No','Stage','TM No','Details','Due (Rs)','Received (Rs)','Balance (Rs)']];
+  rows.forEach(r=>ws.push([r.date,r.client,r.ntn,r.folder,r.stage,r.tmno,r.details,r.due,r.received,r.balance]));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ws),'Entries');
+  XLSX.writeFile(wb,'LexTrack_'+new Date().toISOString().split('T')[0]+'.xlsx');
+  addLog('EXPORT','Excel: '+rows.length+' entries');toast('Excel downloaded!','success');
+}
+function exportJSON(){
+  const data={clients:q('SELECT * FROM clients'),entries:q('SELECT * FROM entries'),exported:new Date().toISOString()};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='LexTrack_Backup_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click(); addLog('EXPORT','JSON backup'); toast('JSON downloaded!','success');
+}
+function exportSQLite(){
+  if(!DB){toast('DB not ready','error');return;}
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([DB.export()],{type:'application/octet-stream'}));
+  a.download='LexTrack_'+new Date().toISOString().split('T')[0]+'.sqlite';
+  a.click(); addLog('EXPORT','SQLite database'); toast('SQLite downloaded!','success');
+}
+function restoreJSON(input){
+  const file=input.files[0]; if(!file) return;
+  const fr=new FileReader();
+  fr.onload=function(e){
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!confirm(`Restore ${d.clients?.length||0} clients + ${d.entries?.length||0} entries? Current data will be replaced!`)) return;
+      DB.run('DELETE FROM entries');DB.run('DELETE FROM clients');
+      (d.clients||[]).forEach(c=>DB.run('INSERT INTO clients(id,name,ntn,phone,email,address,notes,created) VALUES(?,?,?,?,?,?,?,?)',
+        [c.id,c.name,c.ntn,c.phone,c.email,c.address,c.notes,c.created]));
+      (d.entries||[]).forEach(r=>DB.run('INSERT INTO entries(id,client_id,date,folder,stage,tmno,details,due,received,balance,created) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+        [r.id,r.client_id,r.date,r.folder,r.stage,r.tmno,r.details,r.due,r.received,r.balance,r.created]));
+      saveLS(); refreshAll(); addLog('RESTORE','JSON restore'); toast('Data restored!','success');
+    }catch{toast('Invalid JSON file!','error');}
+  };
+  fr.readAsText(file); input.value='';
+}
+
+// ============================================================
+// IMPORT EXCEL — Supports: multi-sheet, skip rows, ledger no,
+//               both "column" and "dropdown" client methods
+// ============================================================
+
+let importWorkbook = null;   // holds the full workbook object
+
+// CMS fields for mapping — includes ledger_no as a separate option
+const CMS_FIELDS = [
+  {key:'date',      label:'Date'},
+  {key:'ledger_no', label:'Ledger No (A-001)'},   // NEW — maps to client lookup
+  {key:'client',    label:'Client Name'},
+  {key:'folder',    label:'Folder No'},
+  {key:'stage',     label:'Stage'},
+  {key:'tmno',      label:'TM No (Govt)'},
+  {key:'details',   label:'Details / Remarks'},
+  {key:'due',       label:'Due Amount'},
+  {key:'received',  label:'Received Amount'},
+  {key:'balance',   label:'Balance'},
+  {key:'skip',      label:'— Skip this column —'},
+];
+
+function handleExcelImport(input){
+  const file = input.files[0]; if(!file) return;
+  const fr = new FileReader();
+  fr.onload = function(e){
+    importWorkbook = XLSX.read(e.target.result, {type:'binary', cellDates:true});
+    if(!importWorkbook.SheetNames.length){ toast('Empty file!','error'); return; }
+
+    // Populate sheet selector
+    const sel = document.getElementById('sheet-select');
+    sel.innerHTML = importWorkbook.SheetNames.map((n,i)=>
+      `<option value="${i}">${n}</option>`
+    ).join('');
+
+    // Load first sheet data
+    loadSheetData(0);
+    document.getElementById('import-panel').style.display = 'block';
+    populateFilters();
+  };
+  fr.readAsBinaryString(file);
+}
+
+function loadSheetData(idx){
+  // Parse chosen sheet into 2D array (importSheetData)
+  const sheetName = importWorkbook.SheetNames[idx];
+  const ws = importWorkbook.Sheets[sheetName];
+  importSheetData = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'YYYY-MM-DD'});
+  renderMappingGrid();
+}
+
+function buildAutoMapping(headers){
+  const mapping = {};
+  headers.forEach((h,i)=>{
+    // prefer first match; skip duplicates
+    for(const f of CMS_FIELDS){
+      if(f.key==='skip') continue;
+      if(mapping[i]) break;
+      if(autoMap(h, f.key)) mapping[i] = f.key;
+    }
+  });
+  return mapping;
+}
+
+function normalizeHeader(s){
+  return (s||'').toString().toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+
+function findHeaderIndex(headers, aliases){
+  const norm = headers.map(h=>normalizeHeader(h));
+  for(let i=0;i<norm.length;i++){
+    if(!norm[i]) continue;
+    if(aliases.some(a=>norm[i].includes(normalizeHeader(a)))) return i;
+  }
+  return -1;
+}
+
+function isClientCodeSheetName(name){
+  const s=(name||'').toString().trim();
+  if(!s) return false;
+  if(s.toLowerCase()==='dashboard') return false;
+  return /^[A-Za-z]-\d{2,}$/.test(s);
+}
+
+function getSheet2DByName(sheetName){
+  const ws = importWorkbook?.Sheets?.[sheetName];
+  if(!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'YYYY-MM-DD'});
+}
+
+function resolveClientByCode(code, name){
+  const ledgerNo = (code||'').toString().trim();
+  const clientName = (name||'').toString().trim();
+  if(!ledgerNo && !clientName) return null;
+  return resolveClient(ledgerNo, clientName);
+}
+
+function doBrandexImport(){
+  if(!importWorkbook){ toast('Please load an Excel file first','error'); return; }
+
+  const doReplace = !!document.getElementById('replace-data')?.checked;
+  if(doReplace){
+    if(!confirm('This will delete ALL existing clients and entries before importing. Continue?')) return;
+    DB.run('DELETE FROM entries');
+    DB.run('DELETE FROM clients');
+  }
+
+  const skip = parseInt(document.getElementById('skip-rows-select').value)||0;
+
+  let clientsImported = 0;
+  let entriesImported = 0;
+  let sheetsProcessed = 0;
+  let rowsSkipped = 0;
+  let autoCreatedClients = 0;
+  let clientsUpdated = 0;
+
+  // 1) Import clients from Dashboard
+  const dashName = importWorkbook.SheetNames.find(n=>String(n).trim().toLowerCase()==='dashboard') || 'Dashboard';
+  const dash2d = getSheet2DByName(dashName);
+  if(dash2d.length > skip){
+    const headers = dash2d[skip] || [];
+    const codeCol = findHeaderIndex(headers, ['clientcode','client code','code','ledger','ledger no','ledgerno','a no','ano','clientid','client id']);
+    const nameCol = findHeaderIndex(headers, ['clientname','client name','name','party','firm']);
+    if(codeCol >= 0 && nameCol >= 0){
+      const dataRows = dash2d.slice(skip+1);
+      dataRows.forEach(r=>{
+        const code = (r?.[codeCol] ?? '').toString().trim();
+        const name = (r?.[nameCol] ?? '').toString().trim();
+        if(!code && !name) return;
+        if(!code) { rowsSkipped++; return; }
+        const existing = q('SELECT id,name FROM clients WHERE ntn=?',[code])[0];
+        if(existing){
+          if(name && existing.name !== name){
+            DB.run('UPDATE clients SET name=? WHERE id=?',[name, existing.id]);
+            clientsUpdated++;
+          }
+        } else {
+          DB.run('INSERT INTO clients(name,ntn,created) VALUES(?,?,?)',[name||code, code, new Date().toISOString()]);
+          clientsImported++;
+        }
+      });
+    }
+  }
+
+  // 2) Import entries from each client code sheet (A-001 etc.)
+  const sheetNames = importWorkbook.SheetNames || [];
+  sheetNames.forEach(sn=>{
+    if(!isClientCodeSheetName(sn)) return;
+    const sheet2d = getSheet2DByName(sn);
+    if(!sheet2d.length || sheet2d.length <= skip) return;
+    const headers = sheet2d[skip] || [];
+    const mapping = buildAutoMapping(headers);
+    const dataRows = sheet2d.slice(skip+1);
+
+    // Ensure client exists for this sheet name
+    const hadClient = q('SELECT COUNT(*) c FROM clients')[0]?.c||0;
+    const cid = resolveClientByCode(sn, '');
+    const nowClient = q('SELECT COUNT(*) c FROM clients')[0]?.c||0;
+    if(nowClient > hadClient) autoCreatedClients++;
+
+    if(!cid){ rowsSkipped += dataRows.length; return; }
+    sheetsProcessed++;
+
+    dataRows.forEach(row=>{
+      if(!row || row.every(c=>c==null||String(c).trim()==='')) return;
+      const rec = {};
+      Object.entries(mapping).forEach(([ci,fk])=>{
+        rec[fk] = row[ci]!=null ? String(row[ci]).trim() : '';
+      });
+
+      const due  = parseFloat(rec.due)      || 0;
+      const recv = parseFloat(rec.received) || 0;
+      const bal  = rec.balance ? (parseFloat(rec.balance)||0) : (due - recv);
+
+      DB.run(
+        'INSERT INTO entries(client_id,date,folder,stage,tmno,details,due,received,balance,created) VALUES(?,?,?,?,?,?,?,?,?,?)',
+        [cid, parseDate(rec.date), rec.folder||'', rec.stage||'Filing',
+         rec.tmno||'', rec.details||'', due, recv, bal, new Date().toISOString()]
+      );
+      entriesImported++;
+    });
+  });
+
+  saveLS();
+  addLog('IMPORT', `Brandex: ${clientsImported} clients, ${clientsUpdated} updated, ${autoCreatedClients} auto-created, ${entriesImported} entries, ${sheetsProcessed} sheets`);
+  refreshAll();
+
+  let msg = `✅ Brandex import done: ${clientsImported} new clients, ${clientsUpdated} updated, ${entriesImported} entries.`;
+  if(autoCreatedClients) msg += ` ${autoCreatedClients} client(s) auto-created.`;
+  if(sheetsProcessed) msg += ` Sheets: ${sheetsProcessed}.`;
+  if(rowsSkipped) msg += ` Skipped: ${rowsSkipped}.`;
+  toast(msg, 'success');
+  cancelImport();
+}
+
+function resetAllData(){
+  if(!confirm('Delete ALL data (clients, entries, log) and reset the app?')) return;
+  try{
+    DB.run('DELETE FROM entries');
+    DB.run('DELETE FROM clients');
+    DB.run('DELETE FROM log');
+  }catch(e){
+    console.warn(e);
+  }
+  localStorage.removeItem('lt_db');
+  saveLS();
+  refreshAll();
+  toast('All data deleted','success');
+}
+
+function onSheetChange(){
+  // Called when user picks a different sheet tab
+  const idx = parseInt(document.getElementById('sheet-select').value)||0;
+  loadSheetData(idx);
+}
+
+function renderMappingGrid(){
+  if(!importSheetData.length) return;
+  const skip    = parseInt(document.getElementById('skip-rows-select').value)||0;
+  const headers = importSheetData[skip] || [];
+
+  // Build column mapping dropdowns
+  let html = '';
+  headers.forEach((h,i)=>{
+    html += `<div class="fg">
+      <label>Col ${i+1}: "<strong>${h||'(empty)'}</strong>"</label>
+      <select id="map-${i}">
+        ${CMS_FIELDS.map(f=>`<option value="${f.key}" ${autoMap(h,f.key)?'selected':''}>${f.label}</option>`).join('')}
+      </select>
+    </div>`;
+  });
+  document.getElementById('mapping-grid').innerHTML = html;
+
+  // Preview — show 4 data rows below headers
+  const dataRows = importSheetData.slice(skip+1, skip+5);
+  if(dataRows.length){
+    document.getElementById('import-preview').innerHTML = `
+      <p style="font-size:12px;color:var(--muted);margin:12px 0 6px">
+        <i class="fas fa-eye"></i> Preview — first ${dataRows.length} data rows after skip:
+      </p>
+      <div style="overflow-x:auto"><div class="table-card"><div class="table-container"><table>
+        <thead><tr>${headers.map(h=>`<th>${h||''}</th>`).join('')}</tr></thead>
+        <tbody>${dataRows.map(r=>`<tr>${headers.map((_,ci)=>`<td>${r[ci]!=null?r[ci]:''}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div></div></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:6px">
+        Total data rows detected: <strong>${importSheetData.length - skip - 1}</strong>
+      </p>`;
+  }
+}
+
+// Auto-guess which CMS field a column header maps to
+function autoMap(header, fieldKey){
+  const h = (header||'').toString().toLowerCase().replace(/[^a-z0-9]/g,'');
+  const m = {
+    date:     ['date','dt','dated'],
+    ledger_no:['ledger','ledgerno','ledger no','ano','acno','clientno','clientid','a001','acode'],
+    client:   ['client','clientname','name','party','firm'],
+    folder:   ['folder','folderno','file','fileno'],
+    stage:    ['stage','status','s1','s2','phase'],
+    tmno:     ['tm','tmno','trademark','copyright','tmnumber','govtno'],
+    details:  ['detail','description','work','remarks','note','particulars'],
+    due:      ['due','amount','fee','total','charges','debit'],
+    received: ['received','paid','recv','payment','credit'],
+    balance:  ['balance','bal','pending','remaining'],
+  };
+  return (m[fieldKey]||[]).some(g => h.includes(g.replace(/[^a-z0-9]/g,'')));
+}
+
+// Toggle UI based on client assignment method
+function toggleClientMethod(){
+  const isCol = document.getElementById('method-col').checked;
+  document.getElementById('dropdown-client-wrap').style.display  = isCol ? 'none'  : 'block';
+  document.getElementById('column-client-hint').style.display    = isCol ? 'block' : 'none';
+  // Highlight selected box
+  document.getElementById('method-col-box').style.borderColor  = isCol ? 'var(--primary)' : 'var(--border)';
+  document.getElementById('method-drop-box').style.borderColor = isCol ? 'var(--border)'  : 'var(--primary)';
+}
+
+// Resolve or create a client by name OR ledger number
+// ledgerNo = e.g. "A-001", clientName = e.g. "Ali & Brothers"
+function resolveClient(ledgerNo, clientName){
+  // 1. Try ledger_no match (stored in ntn field for now)
+  if(ledgerNo){
+    const byLedger = q('SELECT id FROM clients WHERE ntn=?',[ledgerNo]);
+    if(byLedger.length) return byLedger[0].id;
+  }
+  // 2. Try name match
+  if(clientName){
+    const byName = q('SELECT id FROM clients WHERE name LIKE ?',['%'+clientName+'%']);
+    if(byName.length) return byName[0].id;
+  }
+  // 3. Auto-create new client
+  const name = clientName || ledgerNo || 'Unknown';
+  DB.run('INSERT INTO clients(name,ntn,created) VALUES(?,?,?)',
+    [name, ledgerNo||'', new Date().toISOString()]);
+  return q('SELECT last_insert_rowid() id')[0]?.id;
+}
+
+// Parse date string — handles "23-FEB-22", "2024-01-15", Excel serial numbers
+function parseDate(val){
+  if(!val) return new Date().toISOString().split('T')[0];
+  const s = String(val).trim();
+  // Already ISO
+  if(s.match(/^\d{4}-\d{2}-\d{2}$/)) return s;
+  // Try JS Date parse (handles "23-FEB-22", "01-Apr-2023", etc.)
+  try{
+    const d = new Date(s);
+    if(!isNaN(d)) return d.toISOString().split('T')[0];
+  }catch(e){}
+  return s; // fallback — store as-is
+}
+
+function doImport(){
+  if(!importSheetData.length){ toast('No data loaded','error'); return; }
+
+  const skip    = parseInt(document.getElementById('skip-rows-select').value)||0;
+  const headers = importSheetData[skip]||[];
+  const dataRows= importSheetData.slice(skip+1);
+  const method  = document.querySelector('input[name="client-method"]:checked')?.value || 'column';
+  const defCid  = document.getElementById('import-default-client').value;
+
+  // Build column index → field key mapping
+  const mapping = {};
+  headers.forEach((_,i)=>{
+    const v = document.getElementById('map-'+i)?.value;
+    if(v && v!=='skip') mapping[i]=v;
+  });
+
+  let imported=0, skipped=0, autoCreated=0;
+
+  dataRows.forEach(row=>{
+    if(!row || row.every(c=>c==null||String(c).trim()==='')) return; // skip blank rows
+
+    // Extract all mapped fields
+    const rec = {};
+    Object.entries(mapping).forEach(([ci,fk])=>{
+      rec[fk] = row[ci]!=null ? String(row[ci]).trim() : '';
+    });
+
+    let cid;
+
+    if(method === 'dropdown'){
+      // Use the dropdown-selected client for every row
+      cid = defCid;
+      if(!cid){ skipped++; return; }
+
+    } else {
+      // Column method — resolve from LEDGER NO or CLIENT NAME
+      const hadClient = q('SELECT COUNT(*) c FROM clients')[0]?.c||0;
+      cid = resolveClient(rec.ledger_no||'', rec.client||'');
+      const nowClient = q('SELECT COUNT(*) c FROM clients')[0]?.c||0;
+      if(nowClient > hadClient) autoCreated++;
+    }
+
+    if(!cid){ skipped++; return; }
+
+    // Parse financials
+    const due  = parseFloat(rec.due)      || 0;
+    const recv = parseFloat(rec.received) || 0;
+    const bal  = rec.balance ? (parseFloat(rec.balance)||0) : (due - recv);
+
+    DB.run(
+      'INSERT INTO entries(client_id,date,folder,stage,tmno,details,due,received,balance,created) VALUES(?,?,?,?,?,?,?,?,?,?)',
+      [cid, parseDate(rec.date), rec.folder||'', rec.stage||'Filing',
+       rec.tmno||'', rec.details||'', due, recv, bal, new Date().toISOString()]
+    );
+    imported++;
+  });
+
+  saveLS();
+  addLog('IMPORT', `Excel: ${imported} entries, ${autoCreated} new clients, ${skipped} skipped`);
+  refreshAll();
+
+  let msg = `✅ ${imported} entries imported!`;
+  if(autoCreated) msg += ` ${autoCreated} new client(s) created.`;
+  if(skipped)     msg += ` ${skipped} rows skipped.`;
+  toast(msg, 'success');
+  cancelImport();
+}
+
+function cancelImport(){
+  document.getElementById('import-panel').style.display='none';
+  document.getElementById('import-preview').innerHTML='';
+  document.getElementById('excel-input').value='';
+  importSheetData=[];
+  importWorkbook=null;
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+let tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.innerHTML=`<i class="fas ${type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':'fa-info-circle'}"></i> ${msg}`;
+  el.className='show '+(type||'');
+  clearTimeout(tt); tt=setTimeout(()=>el.className='',3200);
+}
+
+// ============================================================
+// MOBILE SIDEBAR
+// ============================================================
+function toggleSidebar(){
+  const s=document.getElementById('sidebar');
+  const b=document.getElementById('sidebar-backdrop');
+  s.classList.toggle('open');
+  b.classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('open');
+}
+
+// ============================================================
+// RESPONSIVE — dashboard 2-col grid becomes 1-col on mobile
+// ============================================================
+function fixDashGrid(){
+  const g=document.querySelector('.dash-bottom-grid');
+  if(!g) return;
+  g.style.gridTemplateColumns=window.innerWidth<768?'1fr':'1fr 1fr';
+}
+window.addEventListener('resize',fixDashGrid);
+fixDashGrid();
+
+// ============================================================
+// DRAG & DROP on import zone
+// ============================================================
+const dz=document.getElementById('drop-zone');
+if(dz){
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault();dz.classList.remove('drag');
+    const f=e.dataTransfer.files[0];
+    if(f) handleExcelImport({files:[f]});
+  });
+}
+</script>
+</body>
+</html>
