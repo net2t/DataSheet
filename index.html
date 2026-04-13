@@ -1180,36 +1180,78 @@ tbody tr:hover { background:var(--primary-light); }
             <div><strong>Version:</strong> 3.1</div>
             <div><strong>Storage:</strong> Browser localStorage (SQLite)</div>
             <div><strong>Export formats:</strong> Excel, CSV, PDF, JSON, SQLite</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======================================================
-         APPLICATION DATA — Coming Soon placeholder
          ====================================================== -->
     <div id="page-appdata" class="page">
-      <div style="text-align:center;padding:60px 20px">
-        <div style="width:80px;height:80px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;color:var(--primary)">
-          <i class="fas fa-database"></i>
+      <!-- Header with actions -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;margin:0 0 4px">Application CMS</h1>
+          <p style="color:var(--muted);margin:0;font-size:13px">Manage trademark/copyright cases with audit trail</p>
         </div>
-        <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">Application Data</h2>
-        <p style="color:var(--muted);font-size:14px;max-width:400px;margin:0 auto 20px">
-          TM Number se linked application records yahan store honge.<br>
-          Har application ka status, stage aur history track hoga.
-        </p>
-        <span style="background:#f59e0b;color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px">
-          🚧 COMING SOON
-        </span>
-        <div style="margin-top:30px;padding:16px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);display:inline-block;text-align:left;max-width:380px">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px">PLANNED FIELDS</div>
-          <div style="font-size:12px;color:var(--text);display:flex;flex-direction:column;gap:4px">
-            <div>📁 Application No. / TM No.</div>
-            <div>👤 Linked Client</div>
-            <div>📅 Filing Date + Deadlines</div>
-            <div>🔄 Stage (S-1 → S-4)</div>
-            <div>📝 Remarks / Notes</div>
-          </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="showCaseModal()" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Case
+          </button>
+          <button onclick="refreshAppCases()" class="btn btn-secondary">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters and Search -->
+      <div style="background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+          <input type="text" id="caseSearch" placeholder="Search case number, TM number, or app name..." style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+          <select id="statusFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Filed">Filed</option>
+            <option value="Under Examination">Under Examination</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Published">Published</option>
+            <option value="Opposed">Opposed</option>
+            <option value="Registered">Registered</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Withdrawn">Withdrawn</option>
+          </select>
+          <select id="ipoFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+            <option value="">All IPO Offices</option>
+            <option value="Lahore">Lahore</option>
+            <option value="Karachi">Karachi</option>
+            <option value="Islamabad">Islamabad</option>
+            <option value="Peshawar">Peshawar</option>
+          </select>
+          <select id="classFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px">
+            <option value="">All Classes</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Cases Table -->
+      <div style="background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden">
+        <div style="overflow-x:auto">
+          <table id="casesTable" style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead style="background:var(--bg);border-bottom:1px solid var(--border)">
+              <tr>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">Date/Time</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">Case No.</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">Application Name</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">TM No.</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">Class</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">Status</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">IPO Office</th>
+                <th style="padding:12px;text-align:left;font-weight:600;color:var(--text)">Delivery</th>
+                <th style="padding:12px;text-align:center;font-weight:600;color:var(--text)">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="casesTableBody">
+              <!-- Cases will be populated here -->
+            </tbody>
+          </table>
+        </div>
+        <div id="noCasesMessage" style="padding:40px;text-align:center;color:var(--muted);display:none">
+          <i class="fas fa-folder-open" style="font-size:32px;margin-bottom:12px;opacity:0.5"></i>
+          <p>No cases found. Click "Add Case" to create your first case.</p>
         </div>
       </div>
     </div>
@@ -1218,7 +1260,50 @@ tbody tr:hover { background:var(--primary-light); }
 </div><!-- end #main -->
 </div><!-- end #app -->
 
-
+<!-- ==========================================================
+     CLIENT MODAL
+     ====================================================== -->
+<div id="client-modal" class="modal">
+  <div class="modal-content" style="max-width:480px">
+    <div class="modal-head">
+      <h3 id="client-modal-title">Add New Client</h3>
+      <button class="modal-close" onclick="closeModal('client-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Client Type</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button type="button" class="ctype-btn ctype-A" data-ctype="A" onclick="selectClientType('A')">A</button>
+          <button type="button" class="ctype-btn ctype-X" data-ctype="X" onclick="selectClientType('X')">X</button>
+          <button type="button" class="ctype-btn ctype-N" data-ctype="N" onclick="selectClientType('N')">N</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">A=Consultant, X=Regular, N=Noor Baaf</div>
+      </div>
+      <div class="fg">
+        <label>Client Name *</label>
+        <input type="text" id="client-name" placeholder="Enter client name">
+      </div>
+      <div class="fg">
+        <label>Client Code (auto-generated)</label>
+        <input type="text" id="client-ntn" readonly style="background:var(--bg);color:var(--muted)">
+      </div>
+      <div class="fg">
+        <label>Phone</label>
+        <input type="text" id="client-phone" placeholder="Phone number">
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input type="email" id="client-email" placeholder="Email address">
+      </div>
+      <div class="fg">
+        <label>Address</label>
+        <textarea id="client-address" rows="2" placeholder="Full address"></textarea>
+      </div>
+      <div class="fg">
+        <label>Notes</label>
+        <textarea id="client-notes" rows="2" placeholder="Internal notes..."></textarea>
+      </div>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('client-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveClient()"><i class="fas fa-save"></i> Save Client</button>
@@ -1226,10 +1311,177 @@ tbody tr:hover { background:var(--primary-light); }
   </div>
 </div>
 
-
+<!-- ==========================================================
+     ENTRY MODAL
+     ====================================================== -->
+<div id="entry-modal" class="modal">
+  <div class="modal-content" style="max-width:520px">
+    <div class="modal-head">
+      <h3 id="entry-modal-title">Add New Entry</h3>
+      <button class="modal-close" onclick="closeModal('entry-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Date *</label>
+        <input type="date" id="entry-date">
+      </div>
+      <div class="fg">
+        <label>Folder No *</label>
+        <input type="text" id="entry-folder" placeholder="e.g. 1234/2024">
+      </div>
+      <div class="fg">
+        <label>Type</label>
+        <select id="entry-etype" onchange="toggleStageField()">
+          <option value="">Select Type</option>
+          <option value="Trademark">Trademark</option>
+          <option value="Copyright">Copyright</option>
+          <option value="Design">Design</option>
+          <option value="NTN">NTN</option>
+          <option value="Company">Company</option>
+        </select>
+      </div>
+      <div class="fg" id="stage-fg">
+        <label>Stage</label>
+        <select id="entry-stage">
+          <option value="">Select Stage</option>
+          <option value="S-1">S-1</option>
+          <option value="S-2">S-2</option>
+          <option value="S-3">S-3</option>
+          <option value="S-4">S-4</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>TM Number</label>
+        <input type="text" id="entry-tmno" placeholder="TM number if applicable">
+      </div>
+      <div class="fg">
+        <label>Details</label>
+        <textarea id="entry-details" rows="2" placeholder="Work details..."></textarea>
+      </div>
+      <div class="fg">
+        <label>Due Amount</label>
+        <input type="number" id="entry-due" step="0.01" placeholder="0">
+      </div>
+      <div class="fg">
+        <label>Received Amount</label>
+        <input type="number" id="entry-received" step="0.01" placeholder="0">
+      </div>
+    </div>
     <div class="modal-foot">
       <button class="btn btn-secondary" onclick="closeModal('entry-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveEntry()"><i class="fas fa-save"></i> Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================
+     CASE MODAL (Application CMS)
+     ====================================================== -->
+<div id="case-modal" class="modal">
+  <div class="modal-content" style="max-width:600px">
+    <div class="modal-head">
+      <h3 id="case-modal-title">Add New Case</h3>
+      <button class="modal-close" onclick="closeModal('case-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="fg">
+          <label>Date/Time *</label>
+          <input type="datetime-local" id="case-date-time">
+        </div>
+        <div class="fg">
+          <label>Case No *</label>
+          <input type="text" id="case-no" placeholder="e.g. A-2024-001">
+        </div>
+      </div>
+      <div class="fg">
+        <label>Application Name *</label>
+        <input type="text" id="case-app-name" placeholder="Enter application name">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="fg">
+          <label>TM Number *</label>
+          <input type="text" id="case-tm-no" placeholder="6-digit TM number" maxlength="6">
+        </div>
+        <div class="fg">
+          <label>Class No *</label>
+          <select id="case-class-no">
+            <option value="">Select Class</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="fg">
+          <label>Status *</label>
+          <select id="case-status" onchange="updateSubStatusOptions()">
+            <option value="">Select Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Filed">Filed</option>
+            <option value="Under Examination">Under Examination</option>
+            <option value="Accepted">Accepted</option>
+            <option value="Published">Published</option>
+            <option value="Opposed">Opposed</option>
+            <option value="Registered">Registered</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Withdrawn">Withdrawn</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Sub Status</label>
+          <select id="case-sub-status">
+            <option value="">Select Sub Status</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>IPO Office *</label>
+        <select id="case-ipo-office">
+          <option value="">Select Office</option>
+          <option value="Lahore">Lahore</option>
+          <option value="Karachi">Karachi</option>
+          <option value="Islamabad">Islamabad</option>
+          <option value="Peshawar">Peshawar</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Delivery Tracking No</label>
+        <input type="text" id="case-delivery-tracking" placeholder="Enter tracking number">
+      </div>
+      <div class="fg">
+        <label>Notes</label>
+        <textarea id="case-notes" rows="3" placeholder="Enter notes..."></textarea>
+      </div>
+      <div class="fg">
+        <label>Attachments</label>
+        <input type="file" id="case-files" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Upload multiple files (PDF, DOC, JPG, PNG)</div>
+        <div id="case-files-preview" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('case-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCase()"><i class="fas fa-save"></i> Save Case</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================
+     CASE DETAIL MODAL
+     ====================================================== -->
+<div id="case-detail-modal" class="modal">
+  <div class="modal-content" style="max-width:800px">
+    <div class="modal-head">
+      <h3>Case Details</h3>
+      <button class="modal-close" onclick="closeModal('case-detail-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="case-detail-content">
+        <!-- Case details will be populated here -->
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('case-detail-modal')">Close</button>
+      <button class="btn btn-primary" onclick="editCase()" id="edit-case-btn"><i class="fas fa-edit"></i> Edit Case</button>
     </div>
   </div>
 </div>
@@ -1245,6 +1497,22 @@ let DB=null, editingClientId=null, editingEntryId=null;
 let editingPLId=null, editingTMFormCode=null;
 let currentLedgerClientId=null, activeStageTab='S-1';
 let selectedClientType='A', importSheetData=[], importWorkbook=null;
+let editingCaseId=null, currentCaseId=null;
+
+// Application CMS constants
+const CASE_STATUS_SUBSTATUS = {
+  'Pending': ['Documentation Pending', 'Payment Pending', 'Waiting for Client'],
+  'Filed': ['Filed Successfully', 'Acknowledgment Received', 'Under Review'],
+  'Under Examination': ['Examination in Progress', 'Objection Received', 'Response Filed'],
+  'Accepted': ['Accepted without Condition', 'Accepted with Condition', 'Condition Fulfilled'],
+  'Published': ['Published in Journal', 'Opposition Period Started', 'No Opposition'],
+  'Opposed': ['Opposition Received', 'Hearing Scheduled', 'Decision Pending'],
+  'Registered': ['Registration Complete', 'Certificate Issued', 'Renewal Due'],
+  'Rejected': ['Rejected by Office', 'Appeal Filed', 'Appeal Rejected'],
+  'Withdrawn': ['Withdrawn by Client', 'Withdrawn by Office', 'Abandoned']
+};
+
+const IPO_OFFICES = ['Lahore', 'Karachi', 'Islamabad', 'Peshawar'];
 
 const STAGES=['S-1','S-2','S-3','S-4'];
 const STAGE_COLORS={'S-1':{bar:'s1',hex:'#6366f1'},'S-2':{bar:'s2',hex:'#f59e0b'},'S-3':{bar:'s3',hex:'#10b981'},'S-4':{bar:'s4',hex:'#ef4444'}};
@@ -1319,6 +1587,44 @@ async function initDB(){
   DB.run(`CREATE TABLE IF NOT EXISTS log(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT, action TEXT, actor TEXT DEFAULT 'OutLawZ', detail TEXT
+  )`);
+  // Application CMS tables
+  DB.run(`CREATE TABLE IF NOT EXISTS app_cases(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_time TEXT,
+    case_no TEXT UNIQUE,
+    app_name TEXT,
+    tm_no TEXT,
+    class_no INTEGER,
+    status TEXT,
+    sub_status TEXT,
+    notes TEXT,
+    ipo_office TEXT,
+    delivery_tracking_no TEXT,
+    created TEXT,
+    updated TEXT,
+    sync_status TEXT DEFAULT 'pending'
+  )`);
+  DB.run(`CREATE TABLE IF NOT EXISTS app_case_files(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_id INTEGER,
+    filename TEXT,
+    file_type TEXT,
+    file_size INTEGER,
+    drive_file_id TEXT,
+    drive_url TEXT,
+    created TEXT,
+    FOREIGN KEY (case_id) REFERENCES app_cases(id)
+  )`);
+  DB.run(`CREATE TABLE IF NOT EXISTS app_case_audit(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    case_id INTEGER,
+    action TEXT,
+    old_values TEXT,
+    new_values TEXT,
+    timestamp TEXT,
+    actor TEXT DEFAULT 'OutLawZ',
+    FOREIGN KEY (case_id) REFERENCES app_cases(id)
   )`);
   // Migration: add new columns if upgrading from v2
   try{DB.run(`ALTER TABLE entries ADD COLUMN etype TEXT DEFAULT ''`);}catch(e){}
@@ -1411,6 +1717,7 @@ function showPage(name,el){
   if(name==='tmpanel')         renderTMPanel();
   if(name==='log')             renderLog();
   if(name==='settings')        loadSettingsPage();
+  if(name==='appdata')         {initializeAppCMS();renderAppCases();}
 }
 function openLedger(id){
   currentLedgerClientId=id; renderLedger(id);
@@ -2379,6 +2686,434 @@ function fixDashGrid(){const g=document.querySelector('.dash-bottom-grid');if(g)
 window.addEventListener('resize',fixDashGrid);fixDashGrid();
 const dz=document.getElementById('drop-zone');
 if(dz){dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handleExcelImport({files:[f]});});}
+
+// ============================================================
+// APPLICATION CMS FUNCTIONS
+// ============================================================
+function initializeAppCMS(){
+  // Populate class dropdown (1-45)
+  const classSelect = document.getElementById('case-class-no');
+  if(classSelect){
+    classSelect.innerHTML = '<option value="">Select Class</option>';
+    for(let i=1; i<=45; i++){
+      classSelect.innerHTML += `<option value="${i}">Class ${i}</option>`;
+    }
+  }
+  
+  // Populate filter class dropdown
+  const filterClassSelect = document.getElementById('classFilter');
+  if(filterClassSelect){
+    filterClassSelect.innerHTML = '<option value="">All Classes</option>';
+    for(let i=1; i<=45; i++){
+      filterClassSelect.innerHTML += `<option value="${i}">Class ${i}</option>`;
+    }
+  }
+  
+  // Add event listeners for filters
+  const searchInput = document.getElementById('caseSearch');
+  const statusFilter = document.getElementById('statusFilter');
+  const ipoFilter = document.getElementById('ipoFilter');
+  const classFilter = document.getElementById('classFilter');
+  
+  if(searchInput) searchInput.addEventListener('input', renderAppCases);
+  if(statusFilter) statusFilter.addEventListener('change', renderAppCases);
+  if(ipoFilter) ipoFilter.addEventListener('change', renderAppCases);
+  if(classFilter) classFilter.addEventListener('change', renderAppCases);
+}
+
+function renderAppCases(){
+  const search = document.getElementById('caseSearch').value.toLowerCase();
+  const statusFilter = document.getElementById('statusFilter').value;
+  const ipoFilter = document.getElementById('ipoFilter').value;
+  const classFilter = document.getElementById('classFilter').value;
+  
+  let cases = q(`SELECT * FROM app_cases ORDER BY created DESC`);
+  
+  // Apply filters
+  if(search){
+    cases = cases.filter(c => 
+      c.case_no.toLowerCase().includes(search) ||
+      c.app_name.toLowerCase().includes(search) ||
+      (c.tm_no && c.tm_no.includes(search))
+    );
+  }
+  
+  if(statusFilter){
+    cases = cases.filter(c => c.status === statusFilter);
+  }
+  
+  if(ipoFilter){
+    cases = cases.filter(c => c.ipo_office === ipoFilter);
+  }
+  
+  if(classFilter){
+    cases = cases.filter(c => c.class_no == classFilter);
+  }
+  
+  const tbody = document.getElementById('casesTableBody');
+  const noCasesMsg = document.getElementById('noCasesMessage');
+  
+  if(cases.length === 0){
+    tbody.innerHTML = '';
+    if(noCasesMsg) noCasesMsg.style.display = 'block';
+    return;
+  }
+  
+  if(noCasesMsg) noCasesMsg.style.display = 'none';
+  
+  tbody.innerHTML = cases.map(c => {
+    const statusColor = getStatusColor(c.status);
+    const deliveryBadge = c.delivery_tracking_no ? 
+      `<span class="badge" style="background:#e3f2fd;color:#1976d2">${c.delivery_tracking_no}</span>` : 
+      '<span class="text-muted">—</span>';
+    
+    return `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:12px">${formatDateTime(c.date_time)}</td>
+        <td style="padding:12px;font-weight:600">${c.case_no}</td>
+        <td style="padding:12px">${c.app_name}</td>
+        <td style="padding:12px">${c.tm_no || '—'}</td>
+        <td style="padding:12px">${c.class_no || '—'}</td>
+        <td style="padding:12px">
+          <span class="badge" style="background:${statusColor};color:#fff">${c.status}</span>
+          ${c.sub_status ? `<br><small style="color:var(--muted)">${c.sub_status}</small>` : ''}
+        </td>
+        <td style="padding:12px">${c.ipo_office || '—'}</td>
+        <td style="padding:12px">${deliveryBadge}</td>
+        <td style="padding:12px;text-align:center">
+          <button class="btn btn-sm btn-secondary" onclick="viewCase(${c.id})" title="View">
+            <i class="fas fa-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="editCase(${c.id})" title="Edit">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCase(${c.id})" title="Delete">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function showCaseModal(caseId = null){
+  editingCaseId = caseId;
+  const modal = document.getElementById('case-modal');
+  const title = document.getElementById('case-modal-title');
+  
+  if(caseId){
+    title.textContent = 'Edit Case';
+    loadCaseData(caseId);
+  } else {
+    title.textContent = 'Add New Case';
+    clearCaseForm();
+    // Set default date/time
+    const now = new Date();
+    document.getElementById('case-date-time').value = now.toISOString().slice(0, 16);
+    // Generate case number
+    generateCaseNumber();
+  }
+  
+  modal.style.display = 'flex';
+}
+
+function loadCaseData(caseId){
+  const caseData = q(`SELECT * FROM app_cases WHERE id = ?`, [caseId])[0];
+  if(!caseData) return;
+  
+  document.getElementById('case-date-time').value = caseData.date_time || '';
+  document.getElementById('case-no').value = caseData.case_no || '';
+  document.getElementById('case-app-name').value = caseData.app_name || '';
+  document.getElementById('case-tm-no').value = caseData.tm_no || '';
+  document.getElementById('case-class-no').value = caseData.class_no || '';
+  document.getElementById('case-status').value = caseData.status || '';
+  document.getElementById('case-ipo-office').value = caseData.ipo_office || '';
+  document.getElementById('case-delivery-tracking').value = caseData.delivery_tracking_no || '';
+  document.getElementById('case-notes').value = caseData.notes || '';
+  
+  updateSubStatusOptions();
+  document.getElementById('case-sub-status').value = caseData.sub_status || '';
+}
+
+function clearCaseForm(){
+  document.getElementById('case-date-time').value = '';
+  document.getElementById('case-no').value = '';
+  document.getElementById('case-app-name').value = '';
+  document.getElementById('case-tm-no').value = '';
+  document.getElementById('case-class-no').value = '';
+  document.getElementById('case-status').value = '';
+  document.getElementById('case-sub-status').value = '';
+  document.getElementById('case-ipo-office').value = '';
+  document.getElementById('case-delivery-tracking').value = '';
+  document.getElementById('case-notes').value = '';
+  document.getElementById('case-files').value = '';
+  document.getElementById('case-files-preview').innerHTML = '';
+}
+
+function generateCaseNumber(){
+  const year = new Date().getFullYear();
+  const lastCase = q(`SELECT case_no FROM app_cases WHERE case_no LIKE 'A-${year}-%' ORDER BY case_no DESC LIMIT 1`)[0];
+  
+  let nextNumber = 1;
+  if(lastCase){
+    const parts = lastCase.case_no.split('-');
+    if(parts.length >= 3){
+      nextNumber = parseInt(parts[2]) + 1;
+    }
+  }
+  
+  const caseNo = `A-${year}-${String(nextNumber).padStart(3, '0')}`;
+  document.getElementById('case-no').value = caseNo;
+}
+
+function updateSubStatusOptions(){
+  const status = document.getElementById('case-status').value;
+  const subStatusSelect = document.getElementById('case-sub-status');
+  
+  subStatusSelect.innerHTML = '<option value="">Select Sub Status</option>';
+  
+  if(status && CASE_STATUS_SUBSTATUS[status]){
+    CASE_STATUS_SUBSTATUS[status].forEach(sub => {
+      subStatusSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+    });
+  }
+}
+
+function saveCase(){
+  const dateTime = document.getElementById('case-date-time').value;
+  const caseNo = document.getElementById('case-no').value.trim();
+  const appName = document.getElementById('case-app-name').value.trim();
+  const tmNo = document.getElementById('case-tm-no').value.trim();
+  const classNo = document.getElementById('case-class-no').value;
+  const status = document.getElementById('case-status').value;
+  const subStatus = document.getElementById('case-sub-status').value;
+  const ipoOffice = document.getElementById('case-ipo-office').value;
+  const deliveryTracking = document.getElementById('case-delivery-tracking').value.trim();
+  const notes = document.getElementById('case-notes').value.trim();
+  
+  // Validation
+  if(!dateTime || !caseNo || !appName || !tmNo || !classNo || !status || !ipoOffice){
+    alert('Please fill all required fields');
+    return;
+  }
+  
+  // Check for duplicate case number
+  const existingCase = q(`SELECT id FROM app_cases WHERE case_no = ? AND id != ?`, [caseNo, editingCaseId || 0]);
+  if(existingCase.length > 0){
+    alert('Case number already exists');
+    return;
+  }
+  
+  // Check for duplicate TM number
+  const existingTM = q(`SELECT id FROM app_cases WHERE tm_no = ? AND id != ?`, [tmNo, editingCaseId || 0]);
+  if(existingTM.length > 0){
+    alert('TM number already exists in the system');
+    return;
+  }
+  
+  const now = new Date().toISOString();
+  
+  if(editingCaseId){
+    // Update existing case
+    const oldData = q(`SELECT * FROM app_cases WHERE id = ?`, [editingCaseId])[0];
+    
+    DB.run(`UPDATE app_cases SET 
+      date_time = ?, app_name = ?, tm_no = ?, class_no = ?, 
+      status = ?, sub_status = ?, ipo_office = ?, 
+      delivery_tracking_no = ?, notes = ?, updated = ?
+      WHERE id = ?`, 
+      [dateTime, appName, tmNo, classNo, status, subStatus, ipoOffice, deliveryTracking, notes, now, editingCaseId]);
+    
+    // Add audit trail
+    addCaseAudit(editingCaseId, 'edit', oldData, {
+      date_time: dateTime, app_name: appName, tm_no: tmNo, class_no: classNo,
+      status: status, sub_status: subStatus, ipo_office: ipoOffice,
+      delivery_tracking_no: deliveryTracking, notes: notes
+    });
+    
+    logActivity(`Updated case ${caseNo}`);
+  } else {
+    // Insert new case
+    DB.run(`INSERT INTO app_cases 
+      (date_time, case_no, app_name, tm_no, class_no, status, sub_status, 
+       ipo_office, delivery_tracking_no, notes, created, updated) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [dateTime, caseNo, appName, tmNo, classNo, status, subStatus, 
+       ipoOffice, deliveryTracking, notes, now, now]);
+    
+    const newId = DB.exec('SELECT last_insert_rowid() as id')[0].values[0][0];
+    
+    // Add audit trail
+    addCaseAudit(newId, 'create', {}, {
+      date_time: dateTime, case_no: caseNo, app_name: appName, tm_no: tmNo,
+      class_no: classNo, status: status, sub_status: subStatus,
+      ipo_office: ipoOffice, delivery_tracking_no: deliveryTracking, notes: notes
+    });
+    
+    logActivity(`Created case ${caseNo}`);
+  }
+  
+  saveLS();
+  closeModal('case-modal');
+  renderAppCases();
+}
+
+function addCaseAudit(caseId, action, oldValues, newValues){
+  const now = new Date().toISOString();
+  DB.run(`INSERT INTO app_case_audit 
+    (case_id, action, old_values, new_values, timestamp, actor) 
+    VALUES (?, ?, ?, ?, ?, ?)`,
+    [caseId, action, JSON.stringify(oldValues), JSON.stringify(newValues), now, 'OutLawZ']);
+}
+
+function viewCase(caseId){
+  currentCaseId = caseId;
+  const caseData = q(`SELECT * FROM app_cases WHERE id = ?`, [caseId])[0];
+  const auditTrail = q(`SELECT * FROM app_case_audit WHERE case_id = ? ORDER BY timestamp DESC`, [caseId]);
+  const files = q(`SELECT * FROM app_case_files WHERE case_id = ? ORDER BY created DESC`, [caseId]);
+  
+  const content = document.getElementById('case-detail-content');
+  
+  content.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div>
+        <h4 style="margin-bottom:12px;color:var(--primary)">Case Information</h4>
+        <div style="background:var(--bg);padding:12px;border-radius:6px;font-size:13px">
+          <div><strong>Case No:</strong> ${caseData.case_no}</div>
+          <div><strong>Date/Time:</strong> ${formatDateTime(caseData.date_time)}</div>
+          <div><strong>Application Name:</strong> ${caseData.app_name}</div>
+          <div><strong>TM Number:</strong> ${caseData.tm_no}</div>
+          <div><strong>Class:</strong> ${caseData.class_no}</div>
+          <div><strong>IPO Office:</strong> ${caseData.ipo_office}</div>
+          <div><strong>Delivery Tracking:</strong> ${caseData.delivery_tracking_no || '—'}</div>
+        </div>
+      </div>
+      <div>
+        <h4 style="margin-bottom:12px;color:var(--primary)">Status</h4>
+        <div style="background:var(--bg);padding:12px;border-radius:6px;font-size:13px">
+          <div><strong>Status:</strong> <span class="badge" style="background:${getStatusColor(caseData.status)};color:#fff">${caseData.status}</span></div>
+          <div><strong>Sub Status:</strong> ${caseData.sub_status || '—'}</div>
+          <div><strong>Created:</strong> ${formatDateTime(caseData.created)}</div>
+          <div><strong>Updated:</strong> ${formatDateTime(caseData.updated)}</div>
+          <div><strong>Sync Status:</strong> <span class="badge" style="background:${caseData.sync_status === 'synced' ? '#10b981' : '#f59e0b'};color:#fff">${caseData.sync_status}</span></div>
+        </div>
+      </div>
+    </div>
+    
+    ${caseData.notes ? `
+    <div style="margin-bottom:24px">
+      <h4 style="margin-bottom:8px;color:var(--primary)">Notes</h4>
+      <div style="background:var(--bg);padding:12px;border-radius:6px;font-size:13px;white-space:pre-wrap">${caseData.notes}</div>
+    </div>
+    ` : ''}
+    
+    ${files.length > 0 ? `
+    <div style="margin-bottom:24px">
+      <h4 style="margin-bottom:8px;color:var(--primary)">Attachments (${files.length})</h4>
+      <div style="background:var(--bg);padding:12px;border-radius:6px">
+        ${files.map(file => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border):last-child{border-bottom:none}">
+            <div>
+              <i class="fas fa-file" style="color:var(--muted);margin-right:8px"></i>
+              <span>${file.filename}</span>
+              <small style="color:var(--muted);margin-left:8px">(${formatFileSize(file.file_size)})</small>
+            </div>
+            ${file.drive_url ? `<a href="${file.drive_url}" target="_blank" class="btn btn-sm btn-secondary"><i class="fas fa-external-link-alt"></i> Open</a>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
+    
+    <div>
+      <h4 style="margin-bottom:8px;color:var(--primary)">Audit Trail</h4>
+      <div style="background:var(--bg);padding:12px;border-radius:6px;max-height:300px;overflow-y:auto">
+        ${auditTrail.length > 0 ? auditTrail.map(audit => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border):last-child{border-bottom:none}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span class="badge" style="background:${audit.action === 'create' ? '#10b981' : audit.action === 'edit' ? '#f59e0b' : '#ef4444'};color:#fff">${audit.action.toUpperCase()}</span>
+              <small style="color:var(--muted)">${formatDateTime(audit.timestamp)}</small>
+            </div>
+            <div style="font-size:12px;color:var(--text)">
+              <strong>Actor:</strong> ${audit.actor}<br>
+              ${audit.action === 'edit' ? '<strong>Changes:</strong> Field values were updated' : audit.action === 'create' ? '<strong>Action:</strong> Case was created' : '<strong>Action:</strong> Case was deleted'}
+            </div>
+          </div>
+        `).join('') : '<p style="color:var(--muted);text-align:center">No audit trail available</p>'}
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('edit-case-btn').onclick = () => {
+    closeModal('case-detail-modal');
+    editCase(caseId);
+  };
+  
+  document.getElementById('case-detail-modal').style.display = 'flex';
+}
+
+function editCase(caseId){
+  showCaseModal(caseId);
+}
+
+function deleteCase(caseId){
+  if(!confirm('Are you sure you want to delete this case? This action cannot be undone.')) return;
+  
+  const caseData = q(`SELECT * FROM app_cases WHERE id = ?`, [caseId])[0];
+  if(!caseData) return;
+  
+  // Add audit trail before deletion
+  addCaseAudit(caseId, 'delete', caseData, {});
+  
+  // Delete case and related records
+  DB.run(`DELETE FROM app_case_files WHERE case_id = ?`, [caseId]);
+  DB.run(`DELETE FROM app_case_audit WHERE case_id = ?`, [caseId]);
+  DB.run(`DELETE FROM app_cases WHERE id = ?`, [caseId]);
+  
+  saveLS();
+  logActivity(`Deleted case ${caseData.case_no}`);
+  renderAppCases();
+}
+
+function refreshAppCases(){
+  renderAppCases();
+}
+
+// Helper functions
+function getStatusColor(status){
+  const colors = {
+    'Pending': '#f59e0b',
+    'Filed': '#3b82f6',
+    'Under Examination': '#8b5cf6',
+    'Accepted': '#10b981',
+    'Published': '#06b6d4',
+    'Opposed': '#f97316',
+    'Registered': '#059669',
+    'Rejected': '#ef4444',
+    'Withdrawn': '#6b7280'
+  };
+  return colors[status] || '#6b7280';
+}
+
+function formatDateTime(dateTime){
+  if(!dateTime) return '—';
+  const date = new Date(dateTime);
+  return date.toLocaleString('en-PK', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatFileSize(bytes){
+  if(!bytes) return '—';
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+}
+
 </script>
 
 <!-- MODAL: CLIENT TYPE + CODE -->
