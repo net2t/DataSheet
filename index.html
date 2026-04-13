@@ -1529,7 +1529,7 @@ function refreshDashboard(){
     </div>`;
 
   // ── SECTION 2: Finance ──
-  const tot=q('SELECT SUM(due) d,SUM(received) r,SUM(balance) b FROM entries')[0]||{};
+  const tot=q('SELECT SUM(due) d,SUM(received) r,(SUM(due)-SUM(received)) b FROM entries')[0]||{};
   const bal=parseFloat(tot.b)||0;
   document.getElementById('stats-grid-2').innerHTML=`
     <div class="stat-card red">
@@ -1598,7 +1598,7 @@ function refreshDashboard(){
         <td>${etypePill(r.etype)}</td>
         <td>${badge(r.stage)}</td>
         <td class="col-r"><span style="color:var(--danger);font-weight:600">Rs ${fmt(r.due)}</span></td>
-        <td class="col-r"><span style="color:var(--primary);font-weight:700">Rs ${fmt(r.balance)}</span></td>
+        <td class="col-r"><span style="color:var(--primary);font-weight:700">Rs ${fmt((parseFloat(r.due)||0)-(parseFloat(r.received)||0))}</span></td>
       </tr>`).join('')
     :`<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><p>No entries yet</p></div></td></tr>`;
 }
@@ -1609,7 +1609,7 @@ function refreshDashboard(){
 function renderClients(){
   const sq=(document.getElementById('client-search')?.value||'').toLowerCase();
   const tf=document.getElementById('client-type-filter')?.value||'';
-  let rows=q('SELECT c.*,COUNT(e.id) tc,SUM(e.balance) tb FROM clients c LEFT JOIN entries e ON c.id=e.client_id GROUP BY c.id ORDER BY c.ntn');
+  let rows=q('SELECT c.*,COUNT(e.id) tc,(SUM(e.due)-SUM(e.received)) tb FROM clients c LEFT JOIN entries e ON c.id=e.client_id GROUP BY c.id ORDER BY c.ntn');
   if(sq) rows=rows.filter(c=>(c.name||'').toLowerCase().includes(sq)||(c.ntn||'').toLowerCase().includes(sq));
   if(tf) rows=rows.filter(c=>(c.ctype||'A')===tf);
   document.getElementById('client-count').textContent=rows.length+' client(s)';
@@ -1669,7 +1669,7 @@ function renderEntries(){
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.details||''}">${r.details||''}</td>
     <td class="col-r text-danger">Rs ${fmt(r.due)}</td>
     <td class="col-r text-success">Rs ${fmt(r.received)}</td>
-    <td class="col-r ${parseFloat(r.balance)>0?'text-danger':'text-muted'}">Rs ${fmt(r.balance)}</td>
+    <td class="col-r ${((parseFloat(r.due)||0)-(parseFloat(r.received)||0))>0?'text-danger':'text-muted'}">Rs ${fmt((parseFloat(r.due)||0)-(parseFloat(r.received)||0))}</td>
     <td><div class="flex-gap">
       <button class="btn-icon" onclick="editEntry(${r.id})"><i class="fas fa-edit"></i></button>
       <button class="btn-icon danger" onclick="deleteEntry(${r.id})"><i class="fas fa-trash"></i></button>
@@ -1689,7 +1689,7 @@ function renderStageView(){
   const rows=q('SELECT e.*,c.name cn FROM entries e LEFT JOIN clients c ON e.client_id=c.id WHERE e.stage=? ORDER BY e.id ASC',[activeStageTab]);
   const tb=document.getElementById('stage-tbody');
   if(!rows.length){tb.innerHTML=`<tr><td colspan="9"><div class="empty-state"><i class="fas fa-layer-group"></i><p>No entries in "${activeStageTab}".</p></div></td></tr>`;return;}
-  tb.innerHTML=rows.map(r=>`<tr><td>${fmtD(r.date)}</td><td>${r.cn||'&#8212;'}</td><td class="text-muted">${r.folder||''}</td><td>${etypePill(r.etype)}</td><td class="text-muted">${r.tmno||''}</td><td>${r.details||''}</td><td class="col-r text-danger">Rs ${fmt(r.due)}</td><td class="col-r text-success">Rs ${fmt(r.received)}</td><td class="col-r ${parseFloat(r.balance)>0?'text-danger':'text-muted'}">Rs ${fmt(r.balance)}</td></tr>`).join('');
+  tb.innerHTML=rows.map(r=>`<tr><td>${fmtD(r.date)}</td><td>${r.cn||'&#8212;'}</td><td class="text-muted">${r.folder||''}</td><td>${etypePill(r.etype)}</td><td class="text-muted">${r.tmno||''}</td><td>${r.details||''}</td><td class="col-r text-danger">Rs ${fmt(r.due)}</td><td class="col-r text-success">Rs ${fmt(r.received)}</td><td class="col-r ${((parseFloat(r.due)||0)-(parseFloat(r.received)||0))>0?'text-danger':'text-muted'}">Rs ${fmt((parseFloat(r.due)||0)-(parseFloat(r.received)||0))}</td></tr>`).join('');
 }
 
 // ============================================================
@@ -1700,7 +1700,7 @@ let _ledgerRows=[], _ledgerClientId=null;
 function renderLedger(id){
   _ledgerClientId=id;
   const c=q('SELECT * FROM clients WHERE id=?',[id])[0];if(!c)return;
-  const t=q('SELECT SUM(due) d,SUM(received) r,SUM(balance) b FROM entries WHERE client_id=?',[id])[0]||{};
+  const t=q('SELECT SUM(due) d,SUM(received) r,(SUM(due)-SUM(received)) b FROM entries WHERE client_id=?',[id])[0]||{};
   document.getElementById('topbar-title').textContent=c.name+' — Ledger';
 
   // Firm branding from settings
@@ -1887,7 +1887,7 @@ function loadClientLedger(){
   if(!id){infoDiv.style.display='none';tableDiv.style.display='none';return;}
   infoDiv.style.display='flex';tableDiv.style.display='block';
   const c=q('SELECT * FROM clients WHERE id=?',[id])[0];
-  const t=q('SELECT SUM(due) d,SUM(received) r,SUM(balance) b FROM entries WHERE client_id=?',[id])[0]||{};
+  const t=q('SELECT SUM(due) d,SUM(received) r,(SUM(due)-SUM(received)) b FROM entries WHERE client_id=?',[id])[0]||{};
   infoDiv.innerHTML=`
     <div class="li-box"><span class="li-label">Client</span><span class="li-val">${c?.name||'&#8212;'}</span></div>
     <div class="li-box"><span class="li-label">Due</span><span class="li-val text-danger">Rs ${fmt(t.d)}</span></div>
@@ -2275,8 +2275,7 @@ function doSequentialImport(){
     if(!cid){skipped++;return;}
     const due=parseFloat(val(COL.DUE))||0;
     const rec=parseFloat(val(COL.RECEIVED))||0;
-    const rawBal=val(COL.BALANCE);
-    const bal=rawBal!==''?(parseFloat(rawBal)||0):(due-rec);
+    const bal=due-rec;
     DB.run('INSERT INTO entries(client_id,date,folder,stage,tmno,details,due,received,balance,created) VALUES(?,?,?,?,?,?,?,?,?,?)',
       [cid,parseDate(val(COL.DATE)),val(COL.FOLDER),val(COL.STAGE),val(COL.TMNO),val(COL.DETAILS),due,rec,bal,new Date().toISOString()]);
     imported++;
@@ -2311,7 +2310,7 @@ function cancelImport(){
 // EXPORT
 // ============================================================
 function exportExcel(){
-  const rows=q('SELECT e.date,c.name client,c.ntn code,c.ctype ctype,e.folder,e.etype,e.stage,e.tmno,e.details,e.due,e.received,e.balance FROM entries e LEFT JOIN clients c ON e.client_id=c.id ORDER BY e.id ASC');
+  const rows=q('SELECT e.date,c.name client,c.ntn code,c.ctype ctype,e.folder,e.etype,e.stage,e.tmno,e.details,e.due,e.received,(e.due-e.received) balance FROM entries e LEFT JOIN clients c ON e.client_id=c.id ORDER BY e.id ASC');
   if(!rows.length){toast('No entries','error');return;}
   const ws=[['Date','Client','Code','CType','Folder','Type','Stage','TM No','Details','Due (Rs)','Received (Rs)','Balance (Rs)']];
   rows.forEach(r=>ws.push([r.date,r.client,r.code,r.ctype,r.folder,r.etype,r.stage,r.tmno,r.details,r.due,r.received,r.balance]));
