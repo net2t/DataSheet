@@ -1173,6 +1173,74 @@ tbody tr:hover { background:var(--primary-light); }
           </button>
         </div>
 
+        <!-- Google Apps Script Integration -->
+        <div class="table-card" style="padding:24px;margin-bottom:18px;border-left:3px solid var(--secondary)">
+          <div style="font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px">
+            <i class="fab fa-google" style="color:var(--secondary)"></i> Google Apps Script Integration
+          </div>
+
+          <!-- Script URL -->
+          <div class="fg" style="margin-bottom:16px">
+            <label>Apps Script Web App URL</label>
+            <input type="url" id="gas-script-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+              <i class="fas fa-info-circle"></i> Deployed Google Apps Script web app URL
+            </div>
+          </div>
+
+          <!-- Shared Secret -->
+          <div class="fg" style="margin-bottom:16px">
+            <label>Shared Secret</label>
+            <input type="text" id="gas-shared-secret" placeholder="Enter secret key" style="font-size:13px">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+              <i class="fas fa-shield-alt"></i> Secret key for authenticating requests
+            </div>
+          </div>
+
+          <!-- Google Sheet ID -->
+          <div class="fg" style="margin-bottom:16px">
+            <label>Google Sheet ID</label>
+            <input type="text" id="gas-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms" style="font-size:13px">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+              <i class="fas fa-file-excel"></i> From Google Sheet URL: .../spreadsheets/d/{SHEET_ID}/edit
+            </div>
+          </div>
+
+          <!-- Drive Folder ID -->
+          <div class="fg" style="margin-bottom:16px">
+            <label>Google Drive Folder ID</label>
+            <input type="text" id="gas-drive-folder-id" placeholder="1KHQjJ7EfAxDtZCXgLxUNNdmM0uIfSfS2" style="font-size:13px">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+              <i class="fas fa-folder"></i> Folder ID for file uploads (must be shared with Apps Script)
+            </div>
+          </div>
+
+          <!-- Sync Status -->
+          <div class="fg" style="margin-bottom:16px">
+            <label>Sync Status</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <span id="sync-status-indicator" class="badge" style="background:#f59e0b;color:#fff">Not Configured</span>
+              <button class="btn btn-sm btn-secondary" onclick="testGoogleAppsScriptConnection()">
+                <i class="fas fa-plug"></i> Test Connection
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="syncPendingCases()">
+                <i class="fas fa-sync"></i> Sync Pending
+              </button>
+            </div>
+          </div>
+
+          <!-- Auto Sync Toggle -->
+          <div class="fg" style="margin-bottom:16px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="gas-auto-sync" style="margin:0">
+              <span>Enable automatic sync on case changes</span>
+            </label>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+              Automatically sync case changes to Google Sheets when enabled
+            </div>
+          </div>
+        </div>
+
         <!-- App info card -->
         <div class="table-card" style="padding:18px 24px;border-left:3px solid var(--secondary)">
           <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">App Info</div>
@@ -1772,6 +1840,22 @@ function loadSettingsPage(){
     prevInit.style.display='block';
     if(prevImg) prevImg.style.display='none';
   }
+  
+  // Load Google Apps Script settings
+  const gasSettings = getGoogleAppsScriptSettings();
+  const scriptUrlEl = document.getElementById('gas-script-url');
+  const sharedSecretEl = document.getElementById('gas-shared-secret');
+  const sheetIdEl = document.getElementById('gas-sheet-id');
+  const driveFolderIdEl = document.getElementById('gas-drive-folder-id');
+  const autoSyncEl = document.getElementById('gas-auto-sync');
+  
+  if(scriptUrlEl) scriptUrlEl.value = gasSettings.scriptUrl;
+  if(sharedSecretEl) sharedSecretEl.value = gasSettings.sharedSecret;
+  if(sheetIdEl) sheetIdEl.value = gasSettings.sheetId;
+  if(driveFolderIdEl) driveFolderIdEl.value = gasSettings.driveFolderId;
+  if(autoSyncEl) autoSyncEl.checked = gasSettings.autoSync;
+  
+  updateSyncStatus();
 }
 function handleLogoUpload(input){
   const file=input.files[0];if(!file)return;
@@ -1809,8 +1893,20 @@ function saveSettings(){
     localStorage.setItem('bx_logo',window._pendingLogo);
     window._pendingLogo=null;
   }
+  
+  // Save Google Apps Script settings
+  const gasSettings = {
+    scriptUrl: (document.getElementById('gas-script-url')?.value||'').trim(),
+    sharedSecret: (document.getElementById('gas-shared-secret')?.value||'').trim(),
+    sheetId: (document.getElementById('gas-sheet-id')?.value||'').trim(),
+    driveFolderId: (document.getElementById('gas-drive-folder-id')?.value||'').trim(),
+    autoSync: document.getElementById('gas-auto-sync')?.checked || false
+  };
+  saveGoogleAppsScriptSettings(gasSettings);
+  
   applySidebarBranding();
   addLog('SETTINGS','Firm name updated to: '+name);
+  addLog('SETTINGS','Google Apps Script settings updated');
   toast('Settings saved!','success');
 }
 
@@ -3113,6 +3209,294 @@ function formatFileSize(bytes){
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
 }
+
+// ============================================================
+// GOOGLE APPS SCRIPT INTEGRATION
+// ============================================================
+function getGoogleAppsScriptSettings(){
+  return {
+    scriptUrl: localStorage.getItem('gas_script_url') || '',
+    sharedSecret: localStorage.getItem('gas_shared_secret') || '',
+    sheetId: localStorage.getItem('gas_sheet_id') || '',
+    driveFolderId: localStorage.getItem('gas_drive_folder_id') || '',
+    autoSync: localStorage.getItem('gas_auto_sync') === 'true'
+  };
+}
+
+function saveGoogleAppsScriptSettings(settings){
+  localStorage.setItem('gas_script_url', settings.scriptUrl || '');
+  localStorage.setItem('gas_shared_secret', settings.sharedSecret || '');
+  localStorage.setItem('gas_sheet_id', settings.sheetId || '');
+  localStorage.setItem('gas_drive_folder_id', settings.driveFolderId || '');
+  localStorage.setItem('gas_auto_sync', settings.autoSync ? 'true' : 'false');
+  updateSyncStatus();
+}
+
+function updateSyncStatus(){
+  const settings = getGoogleAppsScriptSettings();
+  const indicator = document.getElementById('sync-status-indicator');
+  
+  if(!indicator) return;
+  
+  if(!settings.scriptUrl || !settings.sharedSecret || !settings.sheetId){
+    indicator.textContent = 'Not Configured';
+    indicator.style.background = '#f59e0b';
+  } else {
+    indicator.textContent = 'Ready';
+    indicator.style.background = '#10b981';
+  }
+}
+
+async function testGoogleAppsScriptConnection(){
+  const settings = getGoogleAppsScriptSettings();
+  
+  if(!settings.scriptUrl || !settings.sharedSecret){
+    alert('Please configure Google Apps Script settings first');
+    return;
+  }
+  
+  try {
+    const response = await fetch(settings.scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'test',
+        secret: settings.sharedSecret
+      })
+    });
+    
+    if(response.ok){
+      const result = await response.json();
+      if(result.success){
+        alert('Connection successful! Google Apps Script is ready.');
+        updateSyncStatus();
+      } else {
+        alert('Connection failed: ' + result.error);
+      }
+    } else {
+      alert('Connection failed: HTTP ' + response.status);
+    }
+  } catch(error) {
+    alert('Connection failed: ' + error.message);
+  }
+}
+
+async function syncCaseToGoogleAppsScript(caseData, action = 'upsert'){
+  const settings = getGoogleAppsScriptSettings();
+  
+  if(!settings.scriptUrl || !settings.sharedSecret || !settings.sheetId){
+    console.log('Google Apps Script not configured, skipping sync');
+    return false;
+  }
+  
+  if(!settings.autoSync && action !== 'manual'){
+    console.log('Auto sync disabled, skipping sync');
+    return false;
+  }
+  
+  try {
+    const payload = {
+      action: action,
+      secret: settings.sharedSecret,
+      sheetId: settings.sheetId,
+      caseData: caseData
+    };
+    
+    const response = await fetch(settings.scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if(response.ok){
+      const result = await response.json();
+      if(result.success){
+        // Update sync status in database
+        DB.run(`UPDATE app_cases SET sync_status = 'synced' WHERE id = ?`, [caseData.id]);
+        saveLS();
+        console.log('Case synced successfully to Google Sheets');
+        return true;
+      } else {
+        console.error('Sync failed:', result.error);
+        DB.run(`UPDATE app_cases SET sync_status = 'failed' WHERE id = ?`, [caseData.id]);
+        saveLS();
+        return false;
+      }
+    } else {
+      console.error('Sync failed: HTTP ' + response.status);
+      DB.run(`UPDATE app_cases SET sync_status = 'failed' WHERE id = ?`, [caseData.id]);
+      saveLS();
+      return false;
+    }
+  } catch(error) {
+    console.error('Sync failed:', error);
+    DB.run(`UPDATE app_cases SET sync_status = 'failed' WHERE id = ?`, [caseData.id]);
+    saveLS();
+    return false;
+  }
+}
+
+async function syncAuditToGoogleAppsScript(auditData){
+  const settings = getGoogleAppsScriptSettings();
+  
+  if(!settings.scriptUrl || !settings.sharedSecret || !settings.sheetId){
+    return false;
+  }
+  
+  try {
+    const payload = {
+      action: 'appendAudit',
+      secret: settings.sharedSecret,
+      sheetId: settings.sheetId,
+      auditData: auditData
+    };
+    
+    const response = await fetch(settings.scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    return response.ok;
+  } catch(error) {
+    console.error('Audit sync failed:', error);
+    return false;
+  }
+}
+
+async function uploadFileToGoogleDrive(file, caseId){
+  const settings = getGoogleAppsScriptSettings();
+  
+  if(!settings.scriptUrl || !settings.sharedSecret || !settings.driveFolderId){
+    return null;
+  }
+  
+  try {
+    // Convert file to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    
+    const payload = {
+      action: 'uploadFile',
+      secret: settings.sharedSecret,
+      driveFolderId: settings.driveFolderId,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      fileData: base64,
+      caseId: caseId
+    };
+    
+    const response = await fetch(settings.scriptUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if(response.ok){
+      const result = await response.json();
+      if(result.success){
+        // Save file record to database
+        DB.run(`INSERT INTO app_case_files 
+          (case_id, filename, file_type, file_size, drive_file_id, drive_url, created) 
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [caseId, file.name, file.type, file.size, result.fileId, result.fileUrl, new Date().toISOString()]);
+        saveLS();
+        
+        return {
+          fileId: result.fileId,
+          fileUrl: result.fileUrl
+        };
+      }
+    }
+    
+    return null;
+  } catch(error) {
+    console.error('File upload failed:', error);
+    return null;
+  }
+}
+
+async function syncPendingCases(){
+  const settings = getGoogleAppsScriptSettings();
+  
+  if(!settings.scriptUrl || !settings.sharedSecret || !settings.sheetId){
+    alert('Please configure Google Apps Script settings first');
+    return;
+  }
+  
+  const pendingCases = q(`SELECT * FROM app_cases WHERE sync_status = 'pending' OR sync_status = 'failed'`);
+  
+  if(pendingCases.length === 0){
+    alert('No pending cases to sync');
+    return;
+  }
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for(const caseData of pendingCases){
+    const success = await syncCaseToGoogleAppsScript(caseData, 'manual');
+    if(success){
+      successCount++;
+    } else {
+      failCount++;
+    }
+  }
+  
+  alert(`Sync complete: ${successCount} successful, ${failCount} failed`);
+  renderAppCases(); // Refresh the table to show updated sync status
+}
+
+// Update existing saveCase function to include sync
+const originalSaveCase = saveCase;
+saveCase = async function(){
+  // Call original function first
+  originalSaveCase.apply(this, arguments);
+  
+  // Get the case ID (either editingCaseId or newly created)
+  const caseId = editingCaseId || DB.exec('SELECT last_insert_rowid() as id')[0].values[0][0];
+  
+  // Get the case data for sync
+  const caseData = q(`SELECT * FROM app_cases WHERE id = ?`, [caseId])[0];
+  
+  // Sync to Google Apps Script if configured
+  if(caseData){
+    await syncCaseToGoogleAppsScript(caseData);
+  }
+};
+
+// Update existing addCaseAudit function to include sync
+const originalAddCaseAudit = addCaseAudit;
+addCaseAudit = async function(caseId, action, oldValues, newValues){
+  // Call original function first
+  originalAddCaseAudit.apply(this, arguments);
+  
+  // Get the audit data for sync
+  const auditData = {
+    case_id: caseId,
+    action: action,
+    old_values: JSON.stringify(oldValues),
+    new_values: JSON.stringify(newValues),
+    timestamp: new Date().toISOString(),
+    actor: 'OutLawZ'
+  };
+  
+  // Sync audit to Google Apps Script if configured
+  await syncAuditToGoogleAppsScript(auditData);
+};
 
 </script>
 
