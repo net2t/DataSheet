@@ -1,5 +1,6 @@
 const STORAGE_KEY_DATA = 'sheetData_v2';
 const STORAGE_KEY_HISTORY = 'sheetHistory_v1';
+const STORAGE_KEY_SHEETCFG = 'googleSheetCfg_v1';
 
 const STATUS_OPTIONS = [
     { value: 'STAGE 1', label: 'STAGE 1', icon: 'fa-flag' },
@@ -100,6 +101,9 @@ let sortDirection = 1;
 let historyLog = [];
 let viewMode = 'list';
 let isCompact = false;
+let pageSize = 100;
+let currentPage = 1;
+let googleSheetCfg = { sheetId: '', gid: '' };
 
 function getRowIndexByCaseNo(caseNo) {
     return sheetData.findIndex((r) => r.caseNo === caseNo);
@@ -115,13 +119,16 @@ function resolveDataIndex(filteredIndex) {
 document.addEventListener('DOMContentLoaded', function() {
     loadFromLocalStorage();
     loadHistoryFromLocalStorage();
+    loadSheetConfig();
     recalculateDerived();
     filteredData = [...sheetData];
+    applyPaginationReset();
     renderTable();
     renderCards();
     renderHistory();
     updateStatistics();
     setupEventListeners();
+    syncSheetInputs();
 });
 
 window.setActiveTab = setActiveTab;
@@ -138,6 +145,10 @@ window.viewAttachment = viewAttachment;
 window.setViewMode = setViewMode;
 window.toggleCompact = toggleCompact;
 window.handleRowClick = handleRowClick;
+window.prevPage = prevPage;
+window.nextPage = nextPage;
+window.loadFromGoogleSheetUI = loadFromGoogleSheetUI;
+window.saveSheetConfig = saveSheetConfig;
 
 function formatDateTime(value) {
     if (!value) return '';
@@ -192,8 +203,51 @@ function logAction(entry) {
 
 function setupEventListeners() {
     document.getElementById('searchInput').addEventListener('input', filterData);
+    document.getElementById('searchField').addEventListener('change', filterData);
     document.getElementById('statusFilter').addEventListener('change', filterData);
-    document.getElementById('classFilter').addEventListener('change', filterData);
+}
+
+function applyPaginationReset() {
+    currentPage = 1;
+}
+
+function totalPages() {
+    return Math.max(1, Math.ceil(filteredData.length / pageSize));
+}
+
+function getPagedRows() {
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return filteredData.slice(start, end);
+}
+
+function updatePaginationUI() {
+    const indicator = document.getElementById('pageIndicator');
+    const btnPrev = document.getElementById('btnPrevPage');
+    const btnNext = document.getElementById('btnNextPage');
+    if (!indicator || !btnPrev || !btnNext) return;
+    const tp = totalPages();
+    if (currentPage > tp) currentPage = tp;
+    indicator.textContent = `Page ${currentPage} / ${tp} (${pageSize}/page)`;
+    btnPrev.disabled = currentPage <= 1;
+    btnNext.disabled = currentPage >= tp;
+    btnPrev.style.opacity = btnPrev.disabled ? '0.35' : '1';
+    btnNext.style.opacity = btnNext.disabled ? '0.35' : '1';
+}
+
+function nextPage() {
+    const tp = totalPages();
+    if (currentPage < tp) currentPage += 1;
+    renderTable();
+    renderCards();
+    updatePaginationUI();
+}
+
+function prevPage() {
+    if (currentPage > 1) currentPage -= 1;
+    renderTable();
+    renderCards();
+    updatePaginationUI();
 }
 
 function setActiveTab(tab) {
@@ -282,7 +336,11 @@ function renderTable() {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
 
-    filteredData.forEach((row, index) => {
+    const pageRows = getPagedRows();
+    updatePaginationUI();
+
+    pageRows.forEach((row, pageIndex) => {
+        const globalIndex = (currentPage - 1) * pageSize + pageIndex;
         const status = statusMeta(row.status);
         const subStatus = subStatusMeta(row.subStatus);
         const subStatusOptions = getSubStatusOptionsForStatus(row.status);
@@ -300,15 +358,15 @@ function renderTable() {
         tr.innerHTML = `
             <td class="px-4 py-3 text-sm nb-td">${formatDateTime(row.dateTime)}</td>
             <td class="px-4 py-3 text-sm font-black nb-td">${row.caseNo}</td>
-            <td class="px-4 py-3 text-sm nb-td editable" onclick="makeEditable(this, ${index}, 'appName', 'text')">${row.appName || 'Click to edit'}</td>
-            <td class="px-4 py-3 text-sm nb-td editable" onclick="makeEditable(this, ${index}, 'tmNo', 'number')">
+            <td class="px-4 py-3 text-sm nb-td editable" onclick="makeEditable(this, ${globalIndex}, 'appName', 'text')">${row.appName || 'Click to edit'}</td>
+            <td class="px-4 py-3 text-sm nb-td editable" onclick="makeEditable(this, ${globalIndex}, 'tmNo', 'number')">
                 <div class="flex items-center gap-2">
                     <span>${row.tmNo ?? ''}</span>
                     ${tmMatch ? `<i class="fas ${tmMatchIcon} ${tmMatchClass}" style="color: var(--nb-accent)"></i>` : ''}
                 </div>
             </td>
             <td class="px-4 py-3 text-sm nb-td">
-                <select class="nb-select" onchange="updateField(${index}, 'classNo', this.value === '' ? null : Number(this.value))">
+                <select class="nb-select" onchange="updateField(${globalIndex}, 'classNo', this.value === '' ? null : Number(this.value))">
                     ${buildClassOptions(row.classNo)}
                 </select>
             </td>
@@ -316,7 +374,7 @@ function renderTable() {
             <td class="px-4 py-3 text-sm nb-td">
                 <div class="pill">
                     <i class="fas ${status.icon}"></i>
-                    <select class="nb-select" onchange="updateField(${index}, 'status', this.value)">
+                    <select class="nb-select" onchange="updateField(${globalIndex}, 'status', this.value)">
                         ${STATUS_OPTIONS.map((s) => `<option value="${s.value}" ${row.status === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
                     </select>
                 </div>
@@ -325,7 +383,7 @@ function renderTable() {
             <td class="px-4 py-3 text-sm nb-td">
                 <div class="pill">
                     <i class="fas ${subStatus.icon}"></i>
-                    <select class="nb-select" onchange="updateField(${index}, 'subStatus', this.value)">
+                    <select class="nb-select" onchange="updateField(${globalIndex}, 'subStatus', this.value)">
                         ${subStatusOptions.map((s) => `<option value="${s.value}" ${row.subStatus === s.value ? 'selected' : ''}>${s.label}</option>`).join('')}
                     </select>
                 </div>
@@ -344,21 +402,21 @@ function renderTable() {
 
             <td class="px-4 py-3 text-sm nb-td text-center">
                 <div class="flex items-center justify-center gap-2">
-                    <input id="file_${row.caseNo}" type="file" class="hidden" onchange="attachFile(${index}, this.files[0])" />
+                    <input id="file_${row.caseNo}" type="file" class="hidden" onchange="attachFile(${globalIndex}, this.files[0])" />
                     <button class="nb-btn nb-btn-ghost" onclick="document.getElementById('file_${row.caseNo}').click()">
                         <i class="fas ${attachmentIcon}"></i>
                     </button>
-                    ${row.attachment ? `<button class="nb-btn nb-btn-ghost" onclick="viewAttachment(${index})"><i class="fas fa-eye"></i></button>` : ''}
+                    ${row.attachment ? `<button class="nb-btn nb-btn-ghost" onclick="viewAttachment(${globalIndex})"><i class="fas fa-eye"></i></button>` : ''}
                 </div>
             </td>
 
-            <td class="px-4 py-3 text-sm nb-td text-gray-900 editable" onclick="makeEditable(this, ${index}, 'notes', 'text')">${row.notes || 'Click to add...'}</td>
+            <td class="px-4 py-3 text-sm nb-td text-gray-900 editable" onclick="makeEditable(this, ${globalIndex}, 'notes', 'text')">${row.notes || 'Click to add...'}</td>
 
             <td class="px-4 py-3 text-sm nb-td text-center">
-                <button onclick="deleteRow(${index})" class="nb-btn nb-btn-ghost" style="border-color: var(--nb-danger); color: var(--nb-danger)">
+                <button onclick="deleteRow(${globalIndex})" class="nb-btn nb-btn-ghost" style="border-color: var(--nb-danger); color: var(--nb-danger)">
                     <i class="fas fa-trash"></i>
                 </button>
-                <button onclick="duplicateRow(${index})" class="nb-btn nb-btn-ghost ml-2">
+                <button onclick="duplicateRow(${globalIndex})" class="nb-btn nb-btn-ghost ml-2">
                     <i class="fas fa-copy"></i>
                 </button>
             </td>
@@ -372,7 +430,10 @@ function renderCards() {
     if (!body) return;
     body.innerHTML = '';
 
-    filteredData.forEach((row) => {
+    const pageRows = getPagedRows();
+    updatePaginationUI();
+
+    pageRows.forEach((row) => {
         const status = statusMeta(row.status);
         const subStatus = subStatusMeta(row.subStatus);
         const card = document.createElement('div');
@@ -492,8 +553,8 @@ function updateField(rowIndex, field, value) {
 
 function filterData() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const searchField = document.getElementById('searchField').value;
     const statusFilter = document.getElementById('statusFilter').value;
-    const classFilter = document.getElementById('classFilter').value;
 
     const safeToString = (value) => {
         if (value === null || value === undefined) return '';
@@ -509,20 +570,140 @@ function filterData() {
     };
 
     filteredData = sheetData.filter(row => {
-        const matchesSearch = !searchTerm || 
-            Object.values(row).some(value => 
-                safeToString(value).toLowerCase().includes(searchTerm)
-            );
+        const matchesSearch = !searchTerm || (() => {
+            if (searchField) {
+                return safeToString(row[searchField]).toLowerCase().includes(searchTerm);
+            }
+            return Object.values(row).some(value => safeToString(value).toLowerCase().includes(searchTerm));
+        })();
         
         const matchesStatus = !statusFilter || row.status === statusFilter;
-        const matchesClass = !classFilter || String(row.classNo) === classFilter;
-
-        return matchesSearch && matchesStatus && matchesClass;
+        return matchesSearch && matchesStatus;
     });
 
+    applyPaginationReset();
     renderTable();
     renderCards();
     updateStatistics();
+    updatePaginationUI();
+}
+
+function loadSheetConfig() {
+    const saved = localStorage.getItem(STORAGE_KEY_SHEETCFG);
+    if (saved) {
+        try {
+            googleSheetCfg = JSON.parse(saved);
+        } catch {
+            googleSheetCfg = { sheetId: '', gid: '' };
+        }
+    }
+}
+
+function syncSheetInputs() {
+    const idEl = document.getElementById('sheetIdInput');
+    const gidEl = document.getElementById('sheetGidInput');
+    if (!idEl || !gidEl) return;
+    idEl.value = googleSheetCfg.sheetId || '';
+    gidEl.value = googleSheetCfg.gid || '';
+}
+
+function saveSheetConfig() {
+    const idEl = document.getElementById('sheetIdInput');
+    const gidEl = document.getElementById('sheetGidInput');
+    if (!idEl || !gidEl) return;
+    googleSheetCfg = { sheetId: idEl.value.trim(), gid: gidEl.value.trim() };
+    localStorage.setItem(STORAGE_KEY_SHEETCFG, JSON.stringify(googleSheetCfg));
+    alert('Sheet config saved.');
+}
+
+function loadFromGoogleSheetUI() {
+    const idEl = document.getElementById('sheetIdInput');
+    const gidEl = document.getElementById('sheetGidInput');
+    if (!idEl || !gidEl) return;
+    const sheetId = idEl.value.trim();
+    const gid = gidEl.value.trim();
+    if (!sheetId || !gid) {
+        alert('Please enter Sheet ID and GID.');
+        return;
+    }
+    googleSheetCfg = { sheetId, gid };
+    localStorage.setItem(STORAGE_KEY_SHEETCFG, JSON.stringify(googleSheetCfg));
+    loadFromGoogleSheet(sheetId, gid);
+}
+
+async function loadFromGoogleSheet(sheetId, gid) {
+    try {
+        // Requires: sheet published to web OR shared publicly
+        const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(gid)}`;
+        const res = await fetch(url, { method: 'GET' });
+        const text = await res.text();
+        const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+        const payload = JSON.parse(jsonText);
+        const table = payload.table;
+        const cols = (table.cols || []).map((c) => (c.label || '').trim());
+        const rows = table.rows || [];
+
+        const idx = (name) => cols.findIndex((c) => c.toUpperCase() === name.toUpperCase());
+
+        const iDate = idx('DATE TIME');
+        const iCase = idx('CASE NO');
+        const iApp = idx('APP NAME');
+        const iTm = idx('TM NO');
+        const iClass = idx('CLASS');
+        const iStatus = idx('APPLICATION STATUS');
+        const iSub = idx('APPLICATION SUB STATUS');
+        const iNotes = idx('NOTES');
+
+        const parseCell = (r, i) => {
+            const cell = r.c && i >= 0 ? r.c[i] : null;
+            if (!cell) return '';
+            return cell.f ?? cell.v ?? '';
+        };
+
+        const parsed = rows
+            .map((r) => {
+                const dt = parseCell(r, iDate);
+                const caseRaw = parseCell(r, iCase);
+                const tmRaw = parseCell(r, iTm);
+                const classRaw = parseCell(r, iClass);
+                const statusRaw = parseCell(r, iStatus);
+                const subRaw = parseCell(r, iSub);
+
+                const caseNo = Number(String(caseRaw).replace(/[^0-9]/g, '')) || null;
+                const tmNo = Number(String(tmRaw).replace(/[^0-9]/g, '')) || null;
+                const classNo = Number(String(classRaw).replace(/[^0-9]/g, '')) || null;
+
+                // Keep as-is if already matches our enums; otherwise store raw
+                const status = String(statusRaw || '').trim() || 'IMPORTED DATA';
+                const subStatus = String(subRaw || '').trim() || 'OLD RECORD';
+
+                return {
+                    dateTime: dt ? String(dt) : nowIsoLocal(),
+                    caseNo,
+                    appName: String(parseCell(r, iApp) || '').trim(),
+                    tmNo,
+                    classNo,
+                    status,
+                    subStatus,
+                    notes: String(parseCell(r, iNotes) || '').trim(),
+                    attachment: null
+                };
+            })
+            .filter((r) => r.caseNo !== null);
+
+        sheetData = parsed;
+        recalculateDerived();
+        filteredData = [...sheetData];
+        applyPaginationReset();
+        saveToLocalStorage();
+        renderTable();
+        renderCards();
+        updateStatistics();
+        alert('Loaded data from Google Sheet.');
+    } catch (e) {
+        console.error(e);
+        alert('Failed to load Google Sheet. Ensure the sheet is published or public, and Sheet ID/GID are correct.');
+    }
 }
 
 function sortTable(columnIndex) {

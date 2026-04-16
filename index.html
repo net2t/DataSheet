@@ -176,6 +176,18 @@
                            class="nb-input w-full">
                 </div>
                 <div>
+                    <select id="searchField" class="nb-select w-full">
+                        <option value="">Search: All Fields</option>
+                        <option value="caseNo">CASE NO</option>
+                        <option value="appName">APP NAME</option>
+                        <option value="tmNo">TM NO</option>
+                        <option value="classNo">CLASS</option>
+                        <option value="status">STATUS</option>
+                        <option value="subStatus">SUB-STATUS</option>
+                        <option value="notes">NOTES</option>
+                    </select>
+                </div>
+                <div>
                     <select id="statusFilter" class="nb-select w-full">
                         <option value="">All Statuses</option>
                         <option value="STAGE 1">STAGE 1</option>
@@ -190,16 +202,22 @@
                         <option value="IMPORTED DATA">IMPORTED DATA</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <div>
-                    <select id="classFilter" class="nb-select w-full">
-                        <option value="">All Classes</option>
-                        <option value="03">03</option>
-                        <option value="04">04</option>
-                        <option value="30">30</option>
-                        <option value="34">34</option>
-                        <option value="41">41</option>
-                        <option value="43">43</option>
-                    </select>
+                    <input type="text" id="sheetIdInput" placeholder="Google Sheet ID" class="nb-input w-full" />
+                </div>
+                <div>
+                    <input type="text" id="sheetGidInput" placeholder="Sheet GID (tab id)" class="nb-input w-full" />
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="loadFromGoogleSheetUI()" class="nb-btn nb-btn-secondary" style="flex:1">
+                        <i class="fas fa-cloud-arrow-down mr-2"></i>Load Sheet
+                    </button>
+                    <button onclick="saveSheetConfig()" class="nb-btn nb-btn-ghost">
+                        <i class="fas fa-floppy-disk"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -246,6 +264,20 @@
 
         <!-- Data Table -->
         <div class="nb-card overflow-hidden" id="sheetTab">
+            <div class="p-3 border-b" style="border-color: rgba(17,24,39,0.25)">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="font-black">Pagination</div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="prevPage()" class="nb-btn nb-btn-ghost" id="btnPrevPage">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="font-black" id="pageIndicator">Page 1</div>
+                        <button onclick="nextPage()" class="nb-btn nb-btn-ghost" id="btnNextPage">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="table-container">
                 <table class="w-full nb-table" id="dataTable">
                     <thead class="nb-th">
