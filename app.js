@@ -2,6 +2,8 @@ const STORAGE_KEY_DATA = 'sheetData_v2';
 const STORAGE_KEY_HISTORY = 'sheetHistory_v1';
 const STORAGE_KEY_SHEETCFG = 'googleSheetCfg_v1';
 
+const API_BASE = '';
+
 const STATUS_OPTIONS = [
     { value: 'STAGE 1', label: 'STAGE 1', icon: 'fa-flag' },
     { value: 'STAGE 2', label: 'STAGE 2', icon: 'fa-flag-checkered' },
@@ -13,6 +15,38 @@ const STATUS_OPTIONS = [
     { value: 'OPPOSITION', label: 'OPPOSITION', icon: 'fa-scale-balanced' },
     { value: 'REACTIVATION', label: 'REACTIVATION', icon: 'fa-rotate-right' },
     { value: 'IMPORTED DATA', label: 'IMPORTED DATA', icon: 'fa-file-import' }
+
+async function saveRowToBackend(row, changedFields) {
+    if (!hasBackendConfig()) return;
+    if (!row || !row._rowNumber) return;
+
+    const ok = await backendHealthOk();
+    if (!ok) return;
+
+    const map = sheetHeaderMap();
+    const updates = {};
+    for (const [k, v] of Object.entries(changedFields || {})) {
+        if (!map[k]) continue;
+        updates[map[k]] = v ?? '';
+    }
+
+    if (Object.keys(updates).length === 0) return;
+
+    try {
+        await fetch(apiUrl('/api/update'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sheetId: googleSheetCfg.sheetId,
+                gid: Number(googleSheetCfg.gid),
+                rowNumber: Number(row._rowNumber),
+                updates
+            })
+        });
+    } catch (e) {
+        console.error('Backend save failed', e);
+    }
+}
 ];
 
 const SUBSTATUS_OPTIONS = [
@@ -104,6 +138,38 @@ let isCompact = false;
 let pageSize = 100;
 let currentPage = 1;
 let googleSheetCfg = { sheetId: '', gid: '' };
+
+function hasBackendConfig() {
+    return Boolean((googleSheetCfg.sheetId || '').trim() && (googleSheetCfg.gid || '').trim());
+}
+
+function sheetHeaderMap() {
+    return {
+        dateTime: 'DATE TIME',
+        caseNo: 'CASE NO',
+        appName: 'APP NAME',
+        tmNo: 'TM NO',
+        classNo: 'CLASS',
+        status: 'APPLICATION STATUS',
+        subStatus: 'APPLICATION SUB STATUS',
+        notes: 'NOTES'
+    };
+}
+
+function apiUrl(path) {
+    return `${API_BASE}${path}`;
+}
+
+async function backendHealthOk() {
+    try {
+        const res = await fetch(apiUrl('/api/health'));
+        if (!res.ok) return false;
+        const j = await res.json();
+        return Boolean(j && j.ok);
+    } catch {
+        return false;
+    }
+}
 
 function getRowIndexByCaseNo(caseNo) {
     return sheetData.findIndex((r) => r.caseNo === caseNo);
@@ -532,6 +598,12 @@ function updateField(rowIndex, field, value) {
     filterData();
     updateStatistics();
     saveToLocalStorage();
+
+    // Write-back to Google Sheet (backend) if this row originated from a sheet row
+    void saveRowToBackend(sheetData[dataIndex], {
+        [field]: sheetData[dataIndex][field],
+        dateTime: sheetData[dataIndex].dateTime
+    });
     logAction({
         caseNo: sheetData[dataIndex].caseNo,
         action: 'UPDATE',
@@ -628,10 +700,16 @@ function loadFromGoogleSheetUI() {
     }
     googleSheetCfg = { sheetId, gid };
     localStorage.setItem(STORAGE_KEY_SHEETCFG, JSON.stringify(googleSheetCfg));
-    loadFromGoogleSheet(sheetId, gid);
+    void loadFromGoogleSheet(sheetId, gid);
 }
 
 async function loadFromGoogleSheet(sheetId, gid) {
+    const backendOk = await backendHealthOk();
+    if (backendOk) {
+        const loaded = await loadFromBackendSheet(sheetId, gid);
+        if (loaded) return;
+    }
+
     try {
         // Requires: sheet published to web OR shared publicly
         const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(gid)}`;
@@ -706,6 +784,52 @@ async function loadFromGoogleSheet(sheetId, gid) {
     }
 }
 
+async function loadFromBackendSheet(sheetId, gid) {
+    try {
+        const url = apiUrl(`/api/sheet?sheetId=${encodeURIComponent(sheetId)}&gid=${encodeURIComponent(gid)}`);
+        const res = await fetch(url);
+        if (!res.ok) return false;
+        const data = await res.json();
+        const rows = data.rows || [];
+
+        const map = sheetHeaderMap();
+        sheetData = rows
+            .map((r) => {
+                const caseNo = Number(String(r[map.caseNo] || '').replace(/[^0-9]/g, '')) || null;
+                if (caseNo === null) return null;
+                const tmNo = Number(String(r[map.tmNo] || '').replace(/[^0-9]/g, '')) || null;
+                const classNo = Number(String(r[map.classNo] || '').replace(/[^0-9]/g, '')) || null;
+
+                return {
+                    _rowNumber: r._rowNumber,
+                    dateTime: String(r[map.dateTime] || '').trim() || nowIsoLocal(),
+                    caseNo,
+                    appName: String(r[map.appName] || '').trim(),
+                    tmNo,
+                    classNo,
+                    status: String(r[map.status] || '').trim() || 'IMPORTED DATA',
+                    subStatus: String(r[map.subStatus] || '').trim() || 'OLD RECORD',
+                    notes: String(r[map.notes] || '').trim(),
+                    attachment: null
+                };
+            })
+            .filter(Boolean);
+
+        recalculateDerived();
+        filteredData = [...sheetData];
+        applyPaginationReset();
+        saveToLocalStorage();
+        renderTable();
+        renderCards();
+        updateStatistics();
+        alert('Loaded data from backend (Google Sheets API).');
+        return true;
+    } catch (e) {
+        console.error('Backend load failed', e);
+        return false;
+    }
+}
+
 function sortTable(columnIndex) {
     if (sortColumn === columnIndex) {
         sortDirection *= -1;
@@ -762,6 +886,7 @@ function addNewRow() {
     updateStatistics();
     saveToLocalStorage();
     renderCards();
+    void appendRowToBackend(newRow);
     logAction({
         caseNo: newRow.caseNo,
         action: 'ADD',
