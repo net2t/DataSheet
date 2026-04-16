@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATA SHEET</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --nb-bg: #fff3d6;
+            --nb-panel: #ffffff;
+            --nb-ink: #111827;
+            --nb-accent: #7c3aed;
+            --nb-accent2: #06b6d4;
+            --nb-danger: #ef4444;
+            --nb-success: #22c55e;
+            --nb-warn: #f59e0b;
+            --nb-border: 3px;
+            --nb-shadow: 6px 6px 0 0 rgba(17, 24, 39, 1);
+        }
+
+        body {
+            background: var(--nb-bg);
+            color: var(--nb-ink);
+        }
+
+        .nb-card {
+            background: var(--nb-panel);
+            border: var(--nb-border) solid var(--nb-ink);
+            box-shadow: var(--nb-shadow);
+            border-radius: 14px;
+        }
+
+        .nb-btn {
+            border: var(--nb-border) solid var(--nb-ink);
+            box-shadow: 4px 4px 0 0 rgba(17, 24, 39, 1);
+            border-radius: 12px;
+            font-weight: 800;
+            padding: 10px 14px;
+            transition: transform 0.05s ease;
+        }
+        .nb-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 rgba(17, 24, 39, 1); }
+        .nb-btn-primary { background: var(--nb-accent); color: #fff; }
+        .nb-btn-secondary { background: var(--nb-accent2); color: #001018; }
+        .nb-btn-ghost { background: #fff; color: var(--nb-ink); }
+
+        .nb-input, .nb-select {
+            border: var(--nb-border) solid var(--nb-ink);
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #fff;
+            box-shadow: 3px 3px 0 0 rgba(17, 24, 39, 1);
+            outline: none;
+        }
+        .nb-input:focus, .nb-select:focus { outline: 3px solid rgba(124, 58, 237, 0.25); }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 70vh;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .nb-table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        .nb-th {
+            background: #111827;
+            color: #fff;
+            border-bottom: var(--nb-border) solid #111827;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .nb-td {
+            border-bottom: 2px solid rgba(17, 24, 39, 0.2);
+        }
+        .hover-row:hover { background-color: rgba(124, 58, 237, 0.08); }
+        .editable { cursor: pointer; position: relative; }
+        .editable:hover { background-color: rgba(245, 158, 11, 0.15); }
+        .edit-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: var(--nb-border) solid var(--nb-ink);
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #111827;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-weight: 800;
+            font-size: 12px;
+            background: #fff;
+        }
+        .pill-success { background: rgba(34, 197, 94, 0.18); }
+        .pill-warn { background: rgba(245, 158, 11, 0.18); }
+        .pill-danger { background: rgba(239, 68, 68, 0.18); }
+        .tab-btn {
+            border: var(--nb-border) solid var(--nb-ink);
+            box-shadow: 4px 4px 0 0 rgba(17, 24, 39, 1);
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-weight: 900;
+            background: #fff;
+        }
+        .tab-btn[data-active="true"] { background: #111827; color: #fff; }
+
+        .compact .table-container { max-height: 75vh; }
+        .compact td { padding-top: 6px !important; padding-bottom: 6px !important; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+        .blink {
+            animation: blink 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto p-4">
+        <!-- Header -->
+        <div class="nb-card p-6 mb-6">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight">DATA SHEET</h1>
+                    <p class="font-semibold opacity-80 mt-1">Application Tracking</p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="toggleCompact()" class="nb-btn nb-btn-ghost" id="btnCompact">
+                        <i class="fas fa-compress mr-2"></i>Compact
+                    </button>
+                    <button onclick="setViewMode('list')" class="nb-btn nb-btn-ghost" id="btnListView">
+                        <i class="fas fa-list mr-2"></i>List
+                    </button>
+                    <button onclick="setViewMode('card')" class="nb-btn nb-btn-secondary" id="btnCardView">
+                        <i class="fas fa-id-card mr-2"></i>Cards
+                    </button>
+                    <button onclick="exportData()" class="nb-btn nb-btn-ghost">
+                        <i class="fas fa-file-export mr-2"></i>Export CSV
+                    </button>
+                    <button onclick="addNewRow()" class="nb-btn nb-btn-primary">
+                        <i class="fas fa-plus mr-2"></i>Add
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3 mt-5">
+                <button id="tabSheet" class="tab-btn" data-active="true" onclick="setActiveTab('sheet')">
+                    <i class="fas fa-table mr-2"></i>Sheet
+                </button>
+                <button id="tabHistory" class="tab-btn" data-active="false" onclick="setActiveTab('history')">
+                    <i class="fas fa-clock-rotate-left mr-2"></i>History
+                </button>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="nb-card p-4 mb-6" id="sheetFilters">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <input type="text" id="searchInput" placeholder="Search across all columns..." 
+                           class="nb-input w-full">
+                </div>
+                <div>
+                    <select id="statusFilter" class="nb-select w-full">
+                        <option value="">All Statuses</option>
+                        <option value="STAGE 1">STAGE 1</option>
+                        <option value="STAGE 2">STAGE 2</option>
+                        <option value="STAGE 3">STAGE 3</option>
+                        <option value="STAGE 4">STAGE 4</option>
+                        <option value="ASSIGNED">ASSIGNED</option>
+                        <option value="CLOSED">CLOSED</option>
+                        <option value="COPYRIGHT">COPYRIGHT</option>
+                        <option value="OPPOSITION">OPPOSITION</option>
+                        <option value="REACTIVATION">REACTIVATION</option>
+                        <option value="IMPORTED DATA">IMPORTED DATA</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="classFilter" class="nb-select w-full">
+                        <option value="">All Classes</option>
+                        <option value="03">03</option>
+                        <option value="04">04</option>
+                        <option value="30">30</option>
+                        <option value="34">34</option>
+                        <option value="41">41</option>
+                        <option value="43">43</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="sheetStats">
+            <div class="nb-card p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-sm opacity-70">Total</p>
+                        <p class="text-2xl font-black" id="totalCount">0</p>
+                    </div>
+                    <i class="fas fa-layer-group text-2xl"></i>
+                </div>
+            </div>
+            <div class="nb-card p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-sm opacity-70">Imported</p>
+                        <p class="text-2xl font-black" id="importedCount">0</p>
+                    </div>
+                    <i class="fas fa-circle-check text-2xl"></i>
+                </div>
+            </div>
+            <div class="nb-card p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-sm opacity-70">Duplicates</p>
+                        <p class="text-2xl font-black" id="dupeCount">0</p>
+                    </div>
+                    <i class="fas fa-clone text-2xl"></i>
+                </div>
+            </div>
+            <div class="nb-card p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-sm opacity-70">With Notes</p>
+                        <p class="text-2xl font-black" id="notesCount">0</p>
+                    </div>
+                    <i class="fas fa-note-sticky text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="nb-card overflow-hidden" id="sheetTab">
+            <div class="table-container">
+                <table class="w-full nb-table" id="dataTable">
+                    <thead class="nb-th">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider cursor-pointer" onclick="sortTable(0)">
+                                DATE TIME <i class="fas fa-sort ml-2 opacity-60"></i>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider cursor-pointer" onclick="sortTable(1)">
+                                CASE NO <i class="fas fa-sort ml-2 opacity-60"></i>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider cursor-pointer" onclick="sortTable(2)">
+                                APP NAME <i class="fas fa-sort ml-2 opacity-60"></i>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider cursor-pointer" onclick="sortTable(3)">
+                                TM NO <i class="fas fa-sort ml-2 opacity-60"></i>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider cursor-pointer" onclick="sortTable(4)">
+                                CLASS <i class="fas fa-sort ml-2 opacity-60"></i>
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">
+                                APPLICATION STATUS
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">
+                                APPLICATION SUB STATUS
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider">
+                                DUP
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider">
+                                LOOKUP
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider">
+                                FILE
+                            </th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">
+                                NOTES
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-black uppercase tracking-wider">
+                                ACTIONS
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="bg-white">
+                        <!-- Data will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="hidden" id="cardTab">
+            <div id="cardBody" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <div class="nb-card overflow-hidden hidden" id="historyTab">
+            <div class="p-4 border-b" style="border-color: rgba(17,24,39,0.25)">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div class="font-black text-lg">Log History</div>
+                    <button onclick="clearHistory()" class="nb-btn nb-btn-ghost" style="border-color: var(--nb-danger); color: var(--nb-danger)">
+                        <i class="fas fa-trash-can mr-2"></i>Clear
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="w-full nb-table" id="historyTable">
+                    <thead class="nb-th">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">TIME</th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">CASE</th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">ACTION</th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">FIELD</th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">FROM</th>
+                            <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">TO</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody" class="bg-white"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="recordModal" class="hidden" style="position: fixed; inset: 0; z-index: 50;">
+        <div onclick="closeRecord()" style="position: absolute; inset: 0; background: rgba(17,24,39,0.65);"></div>
+        <div style="position: relative; max-width: 1100px; margin: 48px auto; padding: 16px;">
+            <div class="nb-card p-5" style="max-height: calc(100vh - 96px); overflow: auto;">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                        <div id="recordTitle" class="text-xl font-black">Record</div>
+                        <div class="font-bold opacity-70 mt-1">Details + time-based log</div>
+                    </div>
+                    <button onclick="closeRecord()" class="nb-btn nb-btn-ghost" style="border-color: var(--nb-danger); color: var(--nb-danger)">
+                        <i class="fas fa-xmark mr-2"></i>Close
+                    </button>
+                </div>
+
+                <div class="mt-5" id="recordDetails"></div>
+
+                <div class="mt-6">
+                    <div class="font-black text-lg">History</div>
+                    <div id="recordLog" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
