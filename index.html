@@ -1260,9 +1260,13 @@ tbody tr:hover { background:var(--primary-light); }
           <button onclick="showCaseModal()" class="btn btn-primary">
             <i class="fas fa-plus"></i> Add Case
           </button>
+          <button onclick="document.getElementById('csv-import-input').click()" class="btn btn-secondary">
+            <i class="fas fa-file-import"></i> Import CSV
+          </button>
           <button onclick="refreshAppCases()" class="btn btn-secondary">
             <i class="fas fa-sync"></i> Refresh
           </button>
+          <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCSVImport(this)">
         </div>
       </div>
 
@@ -2947,18 +2951,21 @@ function clearCaseForm(){
 }
 
 function generateCaseNumber(){
-  const year = new Date().getFullYear();
-  const lastCase = q(`SELECT case_no FROM app_cases WHERE case_no LIKE 'A-${year}-%' ORDER BY case_no DESC LIMIT 1`)[0];
+  // Get the last case number to determine the next sequence
+  const lastCase = q(`SELECT case_no FROM app_cases ORDER BY case_no DESC LIMIT 1`)[0];
   
   let nextNumber = 1;
+  let prefix = 'A-001'; // Default prefix
+  
   if(lastCase){
     const parts = lastCase.case_no.split('-');
     if(parts.length >= 3){
+      prefix = `${parts[0]}-${parts[1]}`;
       nextNumber = parseInt(parts[2]) + 1;
     }
   }
   
-  const caseNo = `A-${year}-${String(nextNumber).padStart(3, '0')}`;
+  const caseNo = `${prefix}-${String(nextNumber).padStart(3, '0')}`;
   document.getElementById('case-no').value = caseNo;
 }
 
@@ -3173,6 +3180,169 @@ function deleteCase(caseId){
 
 function refreshAppCases(){
   renderAppCases();
+}
+
+function handleCSVImport(input){
+  const file = input.files[0];
+  if(!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const csvData = e.target.result;
+    parseAndImportCSV(csvData);
+  };
+  reader.readAsText(file);
+}
+
+function parseAndImportCSV(csvData){
+  const lines = csvData.split('\n').filter(line => line.trim());
+  if(lines.length < 2) {
+    alert('CSV file is empty or invalid');
+    return;
+  }
+  
+  // Parse header (skip malformed header lines)
+  let headerIndex = 0;
+  for(let i = 0; i < lines.length; i++) {
+    if(lines[i].includes('CASE NO') && lines[i].includes('APP NAME')) {
+      headerIndex = i;
+      break;
+    }
+  }
+  
+  if(headerIndex === 0) {
+    alert('Could not find valid header in CSV file');
+    return;
+  }
+  
+  const dataLines = lines.slice(headerIndex + 1);
+  let importCount = 0;
+  let skipCount = 0;
+  
+  for(const line of dataLines) {
+    if(!line.trim()) continue;
+    
+    // Parse CSV line handling quoted values
+    const parsedLine = parseCSVLine(line);
+    if(parsedLine.length < 8) continue; // Skip invalid lines
+    
+    const [
+      dateTime,
+      caseNo,
+      appName,
+      tmNo,
+      classNo,
+      appStatus,
+      subStatus,
+      tickTM11,
+      notes,
+      empty1,
+      empty2,
+      ipoOffice
+    ] = parsedLine;
+    
+    // Skip if case number already exists
+    const existingCase = q(`SELECT id FROM app_cases WHERE case_no = ?`, [caseNo]);
+    if(existingCase.length > 0) {
+      skipCount++;
+      continue;
+    }
+    
+    // Map status values
+    const status = mapApplicationStatus(appStatus);
+    
+    // Parse date/time
+    const parsedDateTime = parseCSVDateTime(dateTime);
+    
+    // Insert case into database
+    const now = new Date().toISOString();
+    DB.run(`INSERT INTO app_cases 
+      (date_time, case_no, app_name, tm_no, class_no, status, sub_status, 
+       ipo_office, delivery_tracking_no, notes, created, updated, sync_status) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [parsedDateTime, caseNo, appName, tmNo, classNo, status, subStatus, 
+       ipoOffice || '', '', notes || '', now, now, 'pending']);
+    
+    // Add audit trail
+    const newId = DB.exec('SELECT last_insert_rowid() as id')[0].values[0][0];
+    addCaseAudit(newId, 'create', {}, {
+      date_time: parsedDateTime, case_no: caseNo, app_name: appName, tm_no: tmNo,
+      class_no: classNo, status: status, sub_status: subStatus,
+      ipo_office: ipoOffice, notes: notes
+    });
+    
+    importCount++;
+  }
+  
+  saveLS();
+  renderAppCases();
+  
+  alert(`Import complete!\nSuccessfully imported: ${importCount} cases\nSkipped (duplicates): ${skipCount} cases`);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for(let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if(char === '"') {
+      inQuotes = !inQuotes;
+    } else if(char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  // Add the last field
+  result.push(current.trim());
+  return result;
+}
+
+function parseCSVDateTime(dateTimeStr) {
+  if(!dateTimeStr) return new Date().toISOString();
+  
+  // Handle format like "4/16/2026 0:00:00"
+  const parts = dateTimeStr.split(' ');
+  if(parts.length >= 2) {
+    const dateParts = parts[0].split('/');
+    if(dateParts.length === 3) {
+      const month = parseInt(dateParts[0]);
+      const day = parseInt(dateParts[1]);
+      const year = parseInt(dateParts[2]);
+      const timeParts = parts[1].split(':');
+      const hour = parseInt(timeParts[0]) || 0;
+      const minute = parseInt(timeParts[1]) || 0;
+      const second = parseInt(timeParts[2]) || 0;
+      
+      const date = new Date(year, month - 1, day, hour, minute, second);
+      return date.toISOString();
+    }
+  }
+  
+  return new Date().toISOString();
+}
+
+function mapApplicationStatus(csvStatus) {
+  if(!csvStatus) return 'Pending';
+  
+  // Map CSV status values to our status system
+  const statusMap = {
+    '01 STAGE 1️⃣': 'Filed',
+    '02 STAGE 2️⃣': 'Under Examination',
+    '03 STAGE 3️⃣': 'Under Examination',
+    'ASSIGNED 🕵️‍♂️': 'Filed',
+    'OPPOSITION ⚖': 'Opposed',
+    'PUBLISHED 📢': 'Published',
+    'REGISTERED ®': 'Registered',
+    'REJECTED ❌': 'Rejected'
+  };
+  
+  return statusMap[csvStatus] || 'Pending';
 }
 
 // Helper functions
